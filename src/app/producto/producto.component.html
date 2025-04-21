@@ -1,1 +1,27 @@
-<p>producto works!</p>
+<div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 flex flex-col h-full pb-4">
+    @if (imageSrc) {
+    <img src="{{ imageSrc }}" alt="Descripción de la pintura" class="w-full h-56 object-cover" loading="lazy" />
+    }
+
+    <div class="p-4 flex flex-col flex-grow">
+        <h3 class="text-base font-semibold text-gray-800 mb-1 truncate" [title]="nombre">
+            {{ nombre }}
+        </h3>
+        <hr class="border-gray-200 my-2" />
+        @if (descripcion){
+        <p class="text-sm text-gray-600 mb-3 flex-grow line-clamp-3" [title]="descripcion">
+            {{ descripcion }}
+        </p>
+        }
+
+        @if (categoria){
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">{{ categoria }}</p>
+        }
+
+        @if (precio){
+        <p class="text-lg font-bold text-gray-900 mt-auto">{{ precio | currency:'EUR':'symbol':'1.0-0' }}</p>
+        }
+
+    </div>
+
+</div>
