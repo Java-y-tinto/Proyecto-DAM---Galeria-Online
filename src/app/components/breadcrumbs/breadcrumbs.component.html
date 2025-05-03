@@ -1,0 +1,16 @@
+<nav aria-label="breadcrumb" class="bg-gray-100 py-2 px-4 md:px-6 text-sm border-b border-gray-200">
+    <ol class="list-none p-0 inline-flex items-center space-x-2">
+      @for (item of items; track item.label; let isLast = $last) {
+        <li class="flex items-center">
+          @if (item.url && !isLast) {
+            <a [routerLink]="item.url" class="text-blue-600 hover:text-blue-800 hover:underline">{{ item.label }}</a>
+          } @else {
+            <span [class.text-gray-500]="isLast" [class.text-gray-800]="!isLast">{{ item.label }}</span>
+          }
+          @if (!isLast) {
+            <span class="mx-2 text-gray-400">/</span>
+          }
+        </li>
+      }
+    </ol>
+  </nav>
