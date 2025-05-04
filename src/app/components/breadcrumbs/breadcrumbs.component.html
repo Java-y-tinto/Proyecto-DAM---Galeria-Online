@@ -1,5 +1,6 @@
-<nav aria-label="breadcrumb" class="bg-gray-100 py-2 px-4 md:px-6 text-sm border-b border-gray-200">
-    <ol class="list-none p-0 inline-flex items-center space-x-2">
+<nav aria-label="breadcrumb" class="bg-teal-100 py-2 w-full border-b border-gray-200">
+  <div class="container mx-auto px-4 md:px-8 w-full">
+    <ol class="list-none p-0 flex items-center space-x-2 justify-start text-sm text-left w-full">
       @for (item of items; track item.label; let isLast = $last) {
         <li class="flex items-center">
           @if (item.url && !isLast) {
@@ -13,4 +14,5 @@
         </li>
       }
     </ol>
-  </nav>
+  </div>
+</nav>

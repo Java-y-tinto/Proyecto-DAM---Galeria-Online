@@ -111,7 +111,7 @@ export class CatalogComponent implements OnInit, OnDestroy {
   }
 
   // ... (resto de funciones helper: getSimulatedFilters, getSimulatedProducts, capitalize) ...
-  getSimulatedFilters(cat: string): FiltroData[] { /* ... */ return []; }
-  getSimulatedProducts(cat: string): ProductoData[] { /* ... */ return []; }
+  getSimulatedFilters(cat: string): FiltroData[] { this.filtrosDisponibles.push({ id: 'filtro1', label: 'Filtro 1', checked: false }); return this.filtrosDisponibles; }
+  getSimulatedProducts(cat: string): ProductoData[] { this.productos.push({ id: 'producto1', nombre: 'Producto 1', precio: '100', imageSrc: '', categoria: cat, descripcion: 'Descripción del producto 1' }); return this.productos; }
   capitalize(s: string): string { if (!s) return ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 }

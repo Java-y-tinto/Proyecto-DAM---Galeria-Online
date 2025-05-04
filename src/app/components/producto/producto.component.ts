@@ -1,8 +1,9 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-producto',
-  imports: [CurrencyPipe],
+  imports: [CurrencyPipe,RouterLink],
   templateUrl: './producto.component.html',
   styleUrl: './producto.component.scss'
 })
