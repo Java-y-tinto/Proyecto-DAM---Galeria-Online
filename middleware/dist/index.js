@@ -4,13 +4,15 @@ import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
-import { typeDefs } from './graphql/typeDefs/typeDefs';
-import { resolvers } from './graphql/resolvers/resolvers';
-import { verifyToken } from './services/auth';
+import { typeDefs } from './graphql/typeDefs/typeDefs.js';
+import { resolvers } from './graphql/resolvers/resolvers.js';
+import { verifyToken } from './services/auth.js';
+import { connectOdoo } from './instances/odooClientInstance.js';
 dotenv.config();
 const startServer = async () => {
     const app = express();
     const port = process.env.PORT || 4000;
+    await connectOdoo();
     const server = new ApolloServer({
         typeDefs,
         resolvers,

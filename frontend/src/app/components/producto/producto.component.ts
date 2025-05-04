@@ -11,12 +11,12 @@ export class ProductoComponent implements OnInit {
   @Input() id?: string = "";
   @Input() nombre: string = "Nombre no disponible";
   @Input() precio: string = "0";
-  @Input() imageSrc: string = "";
+  @Input() imageSrc: string = "https://placehold.co/600x400";
   @Input() categoria? : string = "";
   @Input() descripcion: string = "";
 
   ngOnInit(): void {
-
+      console.log(this.imageSrc);
   }
 
 }

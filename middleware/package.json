@@ -31,10 +31,5 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.15.3",
     "typescript": "^5.8.3"
-  },
-  "resolutions": {
-  "@types/express": "^4.17.21",
-  "@types/express-serve-static-core": "^4.17.31"
-}
-
+  }
 }

@@ -1,10 +1,9 @@
 // product.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { CurrencyPipe } from '@angular/common';
 import {  ProductoComponent } from '../../components/producto/producto.component';
-
+import { GraphqlService } from '../../services/graphql.service';
 interface ProductoDetalle {
   id: string;
   nombre: string;
@@ -41,7 +40,7 @@ export class ProductComponent implements OnInit {
   
   constructor(
     private route: ActivatedRoute,
-    private http: HttpClient
+    private dbService: GraphqlService
   ) {}
 
   ngOnInit(): void {
@@ -49,11 +48,25 @@ export class ProductComponent implements OnInit {
     this.route.params.subscribe(params => {
       this.productoId = params['id'];
       if (this.productoId) {
+        console.log("A",this.productoId,typeof this.productoId)
         this.cargarProducto();
       }
     });
   }
 
+cargarProducto(): void {
+  this.loading = true;
+  //llamada a graphql para traer la informacion del producto
+  console.log("B")
+  this.dbService.getProductById(this.productoId).subscribe((producto) => {
+    console.log(producto);
+  }
+    
+  )
+}
+  
+
+/*
   cargarProducto(): void {
     this.loading = true;
     // Llamada al middleware para obtener la información del producto
@@ -74,7 +87,8 @@ export class ProductComponent implements OnInit {
         }
       });
   }
-
+      */
+/*
   cargarProductosRelacionados(): void {
     if (this.producto) {
       // Llamada al middleware para obtener productos relacionados por categoría
@@ -90,7 +104,7 @@ export class ProductComponent implements OnInit {
     }
   }
 
-  // Añadir al carrito
+*/  // Añadir al carrito
   anadirAlCarrito(): void {
     if (this.producto) {
       // Lógica para añadir al carrito - puedes implementar un servicio de carrito

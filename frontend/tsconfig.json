@@ -1,8 +1,8 @@
-/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
-/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+// tsconfig.json
 {
   "compileOnSave": false,
   "compilerOptions": {
+    // --- Opciones existentes ---
     "outDir": "./dist/out-tsc",
     "strict": true,
     "noImplicitOverride": true,
@@ -10,15 +10,26 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
-    "isolatedModules": true,
+    "isolatedModules": true, // Asegúrate de que esto no cause conflictos, aunque usualmente está bien
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "moduleResolution": "bundler",
     "importHelpers": true,
     "target": "ES2022",
-    "module": "ES2022"
+    "module": "ES2022",
+    "useDefineForClassFields": false, // Añadido por si acaso, común en Angular
+
+    // --- Opciones AÑADIDAS ---
+    "lib": [
+      "ES2022", // Base, coincide con tu 'target'
+      "dom",    // Necesario para entornos de navegador (Angular)
+      "esnext.asynciterable" // <-- La que pide Apollo
+    ],
+    "allowSyntheticDefaultImports": true // <-- La otra que pide Apollo
+
   },
   "angularCompilerOptions": {
+    // --- Estas opciones se mantienen igual ---
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,

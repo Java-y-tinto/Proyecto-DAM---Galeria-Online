@@ -12,7 +12,7 @@ export interface BreadcrumbItem {
   standalone: true,
   imports: [RouterLink], // Importamos RouterLink para los enlaces
   templateUrl: './breadcrumbs.component.html',
-  // No necesitamos archivo CSS específico por ahora
+  styleUrls: ['./breadcrumbs.component.scss']
 })
 export class BreadcrumbsComponent {
   @Input() items: BreadcrumbItem[] = []; // Recibe un array de items como entrada

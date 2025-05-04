@@ -3,11 +3,12 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 // 1. Importa ActivatedRoute, RouterLink y lo que necesites
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Subscription } from 'rxjs'; // Para gestionar la suscripción al observable
+import { finalize, Subscription } from 'rxjs'; // Para gestionar la suscripción al observable
 // Importa tus otros componentes y servicios
 import { ProductoComponent } from '../../components/producto/producto.component';
 import { BreadcrumbsComponent, BreadcrumbItem } from '../../components/breadcrumbs/breadcrumbs.component';
 // import { ProductService } from '../../core/services/product.service'; // Importarías tu servicio aquí
+import { GraphqlService,Product } from '../../services/graphql.service';
 
 // Interfaces...
 interface ProductoData { id: string; nombre: string; precio: string; imageSrc: string; categoria?: string; descripcion: string; }
@@ -25,7 +26,7 @@ export class CatalogComponent implements OnInit, OnDestroy {
 
   categoriaActual: string | null = null; // Propiedad para guardar la categoría leída
   tituloPagina: string = 'Catálogo';
-  productos: ProductoData[] = [];
+  productos: Product[] = [];
   filtrosDisponibles: FiltroData[] = [];
   breadcrumbItems: BreadcrumbItem[] = [];
   cargando = false;
@@ -33,7 +34,8 @@ export class CatalogComponent implements OnInit, OnDestroy {
 
   // 2. Inyecta ActivatedRoute en el constructor
   constructor(
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private dbService: GraphqlService
     // , private productService: ProductService // <-- Inyectarías tu servicio aquí
     ) {}
 
@@ -101,17 +103,16 @@ export class CatalogComponent implements OnInit, OnDestroy {
     console.log(`Iniciando carga simulada para: ${this.categoriaActual}`);
 
     // *** SIMULACIÓN (Reemplazar con llamada a Servicio usando this.categoriaActual) ***
-    setTimeout(() => {
       this.filtrosDisponibles = this.getSimulatedFilters(this.categoriaActual!);
-      this.productos = this.getSimulatedProducts(this.categoriaActual!);
+      console.log(this.categoriaActual!);
+     this.dbService.getProductsByCategory(this.categoriaActual!).subscribe((res) => { this.productos = res; console.log(res)});
       this.cargando = false;
       console.log('Datos simulados cargados');
-    }, 500);
     // *** FIN SIMULACIÓN ***
   }
 
   // ... (resto de funciones helper: getSimulatedFilters, getSimulatedProducts, capitalize) ...
   getSimulatedFilters(cat: string): FiltroData[] { this.filtrosDisponibles.push({ id: 'filtro1', label: 'Filtro 1', checked: false }); return this.filtrosDisponibles; }
-  getSimulatedProducts(cat: string): ProductoData[] { this.productos.push({ id: 'producto1', nombre: 'Producto 1', precio: '100', imageSrc: '', categoria: cat, descripcion: 'Descripción del producto 1' }); return this.productos; }
+  //getSimulatedProducts(cat: string): ProductoData[] { this.productos.push({ id: 'producto1', nombre: 'Producto 1', precio: '100', imageSrc: '', categoria: cat, descripcion: 'Descripción del producto 1' }); return this.productos; }
   capitalize(s: string): string { if (!s) return ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 }
