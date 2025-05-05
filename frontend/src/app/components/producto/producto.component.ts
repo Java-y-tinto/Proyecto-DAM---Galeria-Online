@@ -12,7 +12,7 @@ export class ProductoComponent implements OnInit {
   @Input() nombre: string = "Nombre no disponible";
   @Input() precio: string = "0";
   @Input() imageSrc: string = "https://placehold.co/600x400";
-  @Input() categoria? : string = "";
+  @Input() categoria? : string = "oleo";
   @Input() descripcion: string = "";
 
   ngOnInit(): void {

@@ -4,15 +4,8 @@ import { ActivatedRoute } from '@angular/router';
 import { CurrencyPipe } from '@angular/common';
 import {  ProductoComponent } from '../../components/producto/producto.component';
 import { GraphqlService } from '../../services/graphql.service';
-interface ProductoDetalle {
-  id: string;
-  nombre: string;
-  precio: number;
-  imagenes: string[];
-  categoria: string;
-  descripcion: string;
-  // Otros campos que puedas necesitar
-}
+import { Product } from '../../services/graphql.service';
+import { BreadcrumbItem, BreadcrumbsComponent } from "../../components/breadcrumbs/breadcrumbs.component";
 
 interface ProductoRelacionado {
   id: string;
@@ -26,17 +19,21 @@ interface ProductoRelacionado {
 @Component({
   selector: 'app-product',
   standalone: true,
-  imports: [CurrencyPipe, ProductoComponent],
+  imports: [CurrencyPipe, ProductoComponent, BreadcrumbsComponent],
   templateUrl: './product.component.html',
   styleUrl: './product.component.scss'
 })
 export class ProductComponent implements OnInit {
   productoId: string = '';
-  producto: ProductoDetalle | null = null;
+  producto: Product | null = null;
   imagenesProducto: string[] = [];
   productosRelacionados: ProductoRelacionado[] = [];
+  BreadCrumb: BreadcrumbItem[] = [];
   loading: boolean = true;
   error: string | null = null;
+  medidas: string = "";
+  estilo: string = "";
+  soporte: string = "";
   
   constructor(
     private route: ActivatedRoute,
@@ -47,8 +44,8 @@ export class ProductComponent implements OnInit {
     // Obtener el ID del producto de los parámetros de la URL
     this.route.params.subscribe(params => {
       this.productoId = params['id'];
+      this.BreadCrumb = [{ label: 'Inicio', url: '/' }, { label: params['categoria'], url: `/catalogo/${params['categoria']}` }];
       if (this.productoId) {
-        console.log("A",this.productoId,typeof this.productoId)
         this.cargarProducto();
       }
     });
@@ -59,7 +56,14 @@ cargarProducto(): void {
   //llamada a graphql para traer la informacion del producto
   console.log("B")
   this.dbService.getProductById(this.productoId).subscribe((producto) => {
-    console.log(producto);
+    this.producto = producto;
+    this.medidas = String(producto.attributes?.find(attr => attr.name === 'medidas')?.values[0].name);
+    this.estilo = String(producto.attributes?.find(attr => attr.name === 'estilo')?.values[0].name);
+    this.soporte = String(producto.attributes?.find(attr => attr.name === 'soporte')?.values[0].name);
+    this.BreadCrumb.push({ label: this.producto!.name, url: `/producto/${this.producto!.id}` });
+    this.loading = false;
+
+    
   }
     
   )

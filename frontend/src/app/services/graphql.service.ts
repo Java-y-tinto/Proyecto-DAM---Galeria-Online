@@ -17,6 +17,37 @@ export interface Product {
   // Ejemplo: description?: string; imageUrl?: string;
 }
 
+
+export interface AttributeValue {
+  id: number;
+  name: string;
+  html_color?: string;
+}
+
+export interface ProductAttribute {
+  id: number;
+  name: string;
+  display_type: string;
+  values: AttributeValue[];
+}
+
+export interface VariantAttributeValue {
+  id: number;
+  product_attribute_value_id: [number, string];
+  price_extra: number;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  list_price: number;
+  image_1920: string;
+  image_512: string;
+  attributes?: ProductAttribute[];
+  variant_attributes?: VariantAttributeValue[];
+}
+
+
 // --- Define la Query GraphQL ---
 // Escribe la query tal como la probarías en Apollo Sandbox o similar.
 // Usa variables GraphQL ($categoryName) para pasar datos dinámicos.
@@ -38,14 +69,36 @@ const GET_PRODUCTS_BY_CATEGORY = gql`
 const GET_PRODUCT_BY_ID = gql`
   query ProductById($id: String!) {
     productById(id: $id) {
-      # Pide aquí los campos exactos que definiste en la interfaz Product
-      id
+    id
+    name
+    list_price
+    image_1920
+    image_512
+    attributes {
       name
-      list_price
-      image_1920
-      # ejemplo: description
+      values {
+        name
+      }
     }
   }
+  }
+`;
+
+const REGISTER_USER_MUTATION = gql`
+  mutation registerUser($name: String!, $email: String!, $password: String!) {
+    registerUser(name: $name, email: $email, password: $password) {
+        token
+    }
+}
+`;
+
+const LOGIN_USER_MUTATION = gql`
+  mutation Login($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
+        token
+    }
+}
+
 `;
 
 @Injectable({
@@ -65,15 +118,26 @@ export class GraphqlService {
       );
   }
 
-  getProductById(id: string): Observable<Product | null> {
+  getProductById(id: string): Observable<Product> {
     return this.apollo
-      .query<{ productById: Product | null }>({
+      .query<{ productById: Product }>({
         query: GET_PRODUCT_BY_ID,
         variables: { id },
       })
       .pipe(
-        map((result) => result.data?.productById ?? null)
+        map((result) => result.data.productById)
       );
   }
-      
+  registerUser(name: string, email: string, password: string) {
+    return this.apollo.mutate({
+      mutation: REGISTER_USER_MUTATION,
+      variables: { name, email, password },
+    });
+  }
+  loginUser(email: string, password: string) {
+    return this.apollo.mutate({
+      mutation: LOGIN_USER_MUTATION,
+      variables: { email, password },
+    });
+  }
 }

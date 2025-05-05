@@ -1,5 +1,5 @@
-import { getProductById, getProducts, getProductsByCategory } from '../../instances/odooClientInstance.js';
-import { authenticateUser, generateToken } from '../../services/auth.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory } from '../../instances/odooClientInstance.js';
+import { authenticateUser, registerUser } from '../../services/auth.js';
 export const resolvers = {
     Query: {
         products: async (_, __, context) => {
@@ -11,10 +11,22 @@ export const resolvers = {
             return await getProductsByCategory(categoryName);
         },
         productById: async (_, { id }, context) => {
-            const product = await getProductById(id);
-            if (!product)
-                throw new Error('Producto no encontrado');
-            return product;
+            try {
+                console.log(`Resolver: Buscando producto con ID: ${id}`);
+                const products = await getProductById(id);
+                console.log(`Resolver: Productos encontrados:`, products);
+                if (!products || products.length === 0) {
+                    console.log(`Resolver: No se encontraron productos`);
+                    return null;
+                }
+                const product = products[0];
+                console.log(`Resolver: Devolviendo producto:`, product);
+                return product;
+            }
+            catch (error) {
+                console.error(`Resolver: Error al buscar producto:`, error);
+                return null;
+            }
         }
     },
     Mutation: {
@@ -22,8 +34,20 @@ export const resolvers = {
             const user = await authenticateUser(email, password);
             if (!user)
                 throw new Error('Credenciales inválidas');
-            const token = generateToken(user);
+            const token = user.token;
             return { token };
+        },
+        registerUser: async (_, { name, email, passwd }) => {
+            try {
+                const isEmailRegistered = await findUserbyEmail(email);
+                if (isEmailRegistered)
+                    throw new Error('El email ya esta registrado');
+                const user = await registerUser({ name, email, passwd });
+                return { token: user.token };
+            }
+            catch (error) {
+                console.error('ERROR al conectar/registrar con Odoo:', error);
+            }
         },
     },
 };

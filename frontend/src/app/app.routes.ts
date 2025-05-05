@@ -6,6 +6,6 @@ import { ProductComponent } from './pages/product/product.component';
 export const routes: Routes = [
     {path: '', component: HomePageComponent, title: 'Galeria online de Paqui Robles' },
     {path: 'catalogo/:categoria', component: CatalogComponent, title: 'Catalogo de productos'},
-    {path: 'producto/:id', component: ProductComponent, title: 'Producto'},
+    {path: 'producto/:categoria/:id', component: ProductComponent, title: 'Producto'},
     {path: '**', redirectTo: ''}
 ];

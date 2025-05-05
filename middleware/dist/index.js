@@ -42,4 +42,22 @@ const startServer = async () => {
         console.log(`🚀 Servidor iniciado en http://localhost:${port}/graphql`);
     });
 };
+/*
+const test = (async () => {
+  console.log("Intentando autenticar usuario");
+  var user = await authenticateUser('itsmytesting@mytesting.com', '1234');
+  console.log(user);
+  if (user){
+    console.log("Intentando verificar token");
+    console.log(verifyToken(user.token));
+  }
+  
+  const user = await registerUser({name: 'mytest',email: 'itsmytesting@mytesting.com',passwd: '1234'});
+  console.log(user);
+  
+})
+
+
+test();
+*/
 startServer();

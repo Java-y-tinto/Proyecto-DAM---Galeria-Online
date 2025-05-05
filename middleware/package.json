@@ -5,7 +5,8 @@
   "scripts": {
     "compile": "tsc",
     "start": "npm run compile && node ./dist/index.js",
-    "preinstall": "npx npm-force-resolutions"
+    "preinstall": "npx npm-force-resolutions",
+    "test": "tsc ./src/test/createOdooUser.ts && node ./dist/test/createOdooUser.js"
   },
   "keywords": [],
   "author": "",

@@ -24,7 +24,7 @@ interface FiltroData { id: string; label: string; checked: boolean; }
 export class CatalogComponent implements OnInit, OnDestroy {
   // Ya NO necesitamos @Input() para la categoría
 
-  categoriaActual: string | null = null; // Propiedad para guardar la categoría leída
+  categoriaActual: string  = ""; // Propiedad para guardar la categoría leída
   tituloPagina: string = 'Catálogo';
   productos: Product[] = [];
   filtrosDisponibles: FiltroData[] = [];
@@ -56,7 +56,7 @@ export class CatalogComponent implements OnInit, OnDestroy {
       } else {
         // Manejar el caso en que el parámetro no exista (opcional)
         console.error("Parámetro 'categoria' no encontrado en la URL.");
-        this.categoriaActual = null;
+        this.categoriaActual = "null";
         this.tituloPagina = 'Categoría no válida';
         this.breadcrumbItems = [ { label: 'Inicio', url: '/' }, { label: 'Error' }];
         this.productos = [];
