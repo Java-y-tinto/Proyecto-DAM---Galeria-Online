@@ -7,15 +7,6 @@ import { ApolloClient,InMemoryCache } from '@apollo/client/core';
 // --- Interfaz para el Producto ---
 // Define una interfaz que coincida con los campos que pides en tu query
 // y que devuelve tu typeDef 'Product' en el backend.
-export interface Product {
-  id: string; // O string si tu backend devuelve string
-  name: string;
-  list_price: number;
-  image_1920: string;
-  image_512: string;
-  // Añade aquí cualquier otro campo que devuelva tu query y necesites
-  // Ejemplo: description?: string; imageUrl?: string;
-}
 
 
 export interface AttributeValue {
@@ -47,6 +38,19 @@ export interface Product {
   variant_attributes?: VariantAttributeValue[];
 }
 
+export interface internalUser {
+  JWT: string;
+}
+export interface loginResponse {
+    login: {
+      token: string;
+      _typename: string;
+    }
+  }
+
+export type AuthPayload = {
+  token: String
+}
 
 // --- Define la Query GraphQL ---
 // Escribe la query tal como la probarías en Apollo Sandbox o similar.

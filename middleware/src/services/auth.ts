@@ -20,6 +20,7 @@ export const verifyToken = (token: string) => {
 };
 
 export const authenticateUser = async (email: string, password: string) => {
+  try {
 const odooConfig = {
   baseUrl: process.env.ODOO_BASE_URL,
   port: Number(process.env.ODOO_PORT),
@@ -35,6 +36,10 @@ const odooConfig = {
   if (!uid) return null;
   //return odoo;
   return { uid,email, token: (await generateToken({uid,email})).token};
+  //Algo ha salido mal,Odoo esta desconectado o el usuario es invalido
+} catch (error) {
+  return null
+}
 };
 
 export const registerUser = async ({name,email,passwd}: { name: string; email: string; passwd: string }) => {

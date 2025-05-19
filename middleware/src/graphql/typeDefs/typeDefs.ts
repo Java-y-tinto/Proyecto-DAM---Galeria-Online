@@ -1,5 +1,3 @@
-
-
 export const typeDefs = `#graphql
 type AttributeValue {
   id: Int
@@ -29,19 +27,19 @@ type Product {
   attributes: [ProductAttribute]
   variant_attributes: [VariantAttributeValue]
 }
-  type AuthPayload {
-    token: String!
-  }
 
-  type Query {
-    products: [Product!]!
-    productsByCategory(categoryName: String!): [Product!]!
-    productById(id: String!): Product!
-  }
+type AuthPayload {
+  token: String!
+}
 
-  type Mutation {
-    login(email: String!, password: String!): AuthPayload
+type Query {
+  products: [Product!]!
+  productsByCategory(categoryName: String!): [Product!]!
+  productById(id: String!): Product
+}
 
-    registerUser(name: String!, email: String!, password: String!): AuthPayload
-  }
+type Mutation {
+  login(email: String!, password: String!): AuthPayload
+  registerUser(name: String!, email: String!, passwd: String!): AuthPayload
+}
 `;

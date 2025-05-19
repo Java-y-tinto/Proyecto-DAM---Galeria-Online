@@ -36,7 +36,7 @@ export const resolvers = {
   Mutation: {
     login: async (_: any, { email, password }: any) => {
       const user = await authenticateUser(email, password);
-      if (!user) throw new Error('Credenciales inválidas');
+      if (!user || user === null) return null;
 
       const token = user.token;
       return { token };
@@ -44,11 +44,12 @@ export const resolvers = {
     registerUser: async (_: any, { name, email, passwd }: any) => {
       try {
         const isEmailRegistered = await findUserbyEmail(email);
-        if (isEmailRegistered) throw new Error('El email ya esta registrado');
+        if (isEmailRegistered) return "Email ya existente"
         const user = await registerUser({ name, email, passwd });
         return { token: user.token };
       } catch (error) {
         console.error('ERROR al conectar/registrar con Odoo:', error);
+        throw new Error(`Error de registro: ${error.message || 'Error desconocido'}`);
       }
     },
   },
