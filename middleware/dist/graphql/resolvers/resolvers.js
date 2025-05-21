@@ -35,19 +35,36 @@ export const resolvers = {
             if (!user || user === null)
                 return null;
             const token = user.token;
-            return { token };
+            return {
+                token: token,
+                success: true,
+                message: "OK"
+            };
         },
         registerUser: async (_, { name, email, passwd }) => {
             try {
                 const isEmailRegistered = await findUserbyEmail(email);
-                if (isEmailRegistered)
-                    return "Email ya existente";
+                if (isEmailRegistered && isEmailRegistered.length > 0) {
+                    return {
+                        success: false,
+                        message: "Email ya registrado",
+                        token: null
+                    };
+                }
                 const user = await registerUser({ name, email, passwd });
-                return { token: user.token };
+                return {
+                    token: user.token.token,
+                    success: true,
+                    message: "OK"
+                };
             }
             catch (error) {
                 console.error('ERROR al conectar/registrar con Odoo:', error);
-                throw new Error(`Error de registro: ${error.message || 'Error desconocido'}`);
+                return {
+                    success: false,
+                    message: `Error de registro: ${error.message || 'Error desconocido'}`,
+                    token: null
+                };
             }
         },
     },

@@ -1,87 +1,106 @@
 <div class="flex items-center justify-center min-h-screen bg-gray-100">
-    <div class="w-full max-w-xs">
-      <form class="bg-blue-50 shadow-md rounded px-8 pt-6 pb-8 mb-4"
-            [formGroup]="registerForm"
-            (ngSubmit)="onRegister()">
-  
-        <!-- Nombre -->
-        <div class="mb-4">
-          <label for="firstName" class="block text-gray-700 text-sm font-normal mb-2">Nombre:</label>
-          <input id="firstName" type="text" formControlName="firstName"
-                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-          @if (registerForm.get('firstName')?.invalid && (registerForm.get('firstName')?.dirty || registerForm.get('firstName')?.touched)) {
-            @if (registerForm.get('firstName')?.errors?.['required']) {
-              <div class="text-red-500 text-xs mt-1">Nombre es requerido</div>
-            }
+  <div class="w-full max-w-xs">
+    <form class="bg-blue-50 shadow-md rounded px-8 pt-6 pb-8 mb-4"
+          [formGroup]="registerForm"
+          (ngSubmit)="onRegister()">
+
+      <!-- Nombre -->
+      <div class="mb-4">
+        <label for="firstName" class="block text-gray-700 text-sm font-normal mb-2">Nombre:</label>
+        <input id="firstName" type="text" formControlName="firstName"
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" maxlength="20"/>
+        @if (registerForm.get('firstName')?.invalid && (registerForm.get('firstName')?.dirty || registerForm.get('firstName')?.touched)) {
+          @if (registerForm.get('firstName')?.errors?.['required']) {
+            <div class="text-red-500 text-xs mt-1">Nombre es requerido</div>
           }
-        </div>
-  
-        <!-- Apellidos -->
-        <div class="mb-4">
-          <label for="lastName" class="block text-gray-700 text-sm font-normal mb-2">Apellidos:</label>
-          <input id="lastName" type="text" formControlName="lastName"
-                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-          @if (registerForm.get('lastName')?.invalid && (registerForm.get('lastName')?.dirty || registerForm.get('lastName')?.touched)) {
-            @if (registerForm.get('lastName')?.errors?.['required']) {
-              <div class="text-red-500 text-xs mt-1">Apellidos son requeridos</div>
-            }
+          @if (registerForm.get('firstName')?.errors?.['maxlength']) {
+            <div class="text-red-500 text-xs mt-1">Máximo 20 caracteres</div>
           }
-        </div>
-  
-        <!-- Email -->
-        <div class="mb-4">
-          <label for="email" class="block text-gray-700 text-sm font-normal mb-2">E-mail:</label>
-          <input id="email" type="email" formControlName="email"
-                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-          @if (registerForm.get('email')?.invalid && (registerForm.get('email')?.dirty || registerForm.get('email')?.touched)) {
-            @if (registerForm.get('email')?.errors?.['required']) {
-              <div class="text-red-500 text-xs mt-1">Email es requerido</div>
-            }
-            @if (registerForm.get('email')?.errors?.['email']) {
-              <div class="text-red-500 text-xs mt-1">Ingrese un email válido</div>
-            }
+        }
+      </div>
+
+      <!-- Apellidos -->
+      <div class="mb-4">
+        <label for="lastName" class="block text-gray-700 text-sm font-normal mb-2">Apellidos:</label>
+        <input id="lastName" type="text" formControlName="lastName"
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" maxlength="20"/>
+        @if (registerForm.get('lastName')?.invalid && (registerForm.get('lastName')?.dirty || registerForm.get('lastName')?.touched)) {
+          @if (registerForm.get('lastName')?.errors?.['required']) {
+            <div class="text-red-500 text-xs mt-1">Apellidos son requeridos</div>
           }
-        </div>
-  
-        <!-- Contraseña -->
-        <div class="mb-4">
-          <label for="password" class="block text-gray-700 text-sm font-normal mb-2">Contraseña:</label>
-          <input id="password" type="password" formControlName="password"
-                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-          @if (registerForm.get('password')?.invalid && (registerForm.get('password')?.dirty || registerForm.get('password')?.touched)) {
-            @if (registerForm.get('password')?.errors?.['required']) {
-              <div class="text-red-500 text-xs mt-1">Contraseña es requerida</div>
-            }
-            @if (registerForm.get('password')?.errors?.['minlength']) {
-              <div class="text-red-500 text-xs mt-1">Debe tener al menos 6 caracteres</div>
-            }
+          @if (registerForm.get('lastName')?.errors?.['maxlength']) {
+            <div class="text-red-500 text-xs mt-1">Máximo 20 caracteres</div>
           }
-        </div>
-  
-        <!-- Confirmar contraseña -->
-        <div class="mb-6">
-          <label for="confirmPassword" class="block text-gray-700 text-sm font-normal mb-2">Confirmar contraseña:</label>
-          <input id="confirmPassword" type="password" formControlName="confirmPassword"
-                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-          @if ((registerForm.get('confirmPassword')?.dirty || registerForm.get('confirmPassword')?.touched) && registerForm.errors?.['passwordMismatch']) {
-            <div class="text-red-500 text-xs mt-1">Las contraseñas no coinciden</div>
+        }
+      </div>
+
+      <!-- Email -->
+      <div class="mb-4">
+        <label for="email" class="block text-gray-700 text-sm font-normal mb-2">E-mail:</label>
+        <input id="email" type="email" formControlName="email"
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" maxlength="50" />
+        @if (registerForm.get('email')?.invalid && (registerForm.get('email')?.dirty || registerForm.get('email')?.touched)) {
+          @if (registerForm.get('email')?.errors?.['required']) {
+            <div class="text-red-500 text-xs mt-1">Email es requerido</div>
           }
-        </div>
-  
-        <!-- Botón -->
-        <div class="flex items-center justify-center">
-          <button type="submit"
-                  [disabled]="registerForm.invalid"
-                  class="bg-blue-500 hover:bg-blue-700 text-white font-normal py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full flex justify-center items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd"
-                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                    clip-rule="evenodd" />
-            </svg>
-            Registrarse
-          </button>
-        </div>
-      </form>
+          @if (registerForm.get('email')?.errors?.['email']) {
+            <div class="text-red-500 text-xs mt-1">Ingrese un email válido</div>
+          }
+          @if (registerForm.get('email')?.errors?.['maxlength']) {
+            <div class="text-red-500 text-xs mt-1">Máximo 50 caracteres</div>
+          }
+        }
+        @if (emailalreadyexists) {
+          <div class="text-red-500 text-xs mt-1">El email especificado ya está registrado</div>
+        }
+      </div>
+
+      <!-- Contraseña -->
+      <div class="mb-4">
+        <label for="password" class="block text-gray-700 text-sm font-normal mb-2">Contraseña:</label>
+        <input id="password" type="password" formControlName="password"
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" maxlength="20" />
+        @if (registerForm.get('password')?.invalid && (registerForm.get('password')?.dirty || registerForm.get('password')?.touched)) {
+          @if (registerForm.get('password')?.errors?.['required']) {
+            <div class="text-red-500 text-xs mt-1">Contraseña es requerida</div>
+          }
+          @if (registerForm.get('password')?.errors?.['minlength']) {
+            <div class="text-red-500 text-xs mt-1">Debe tener al menos 6 caracteres</div>
+          }
+          @if (registerForm.get('password')?.errors?.['maxlength']) {
+            <div class="text-red-500 text-xs mt-1">Máximo 20 caracteres</div>
+          }
+        }
+      </div>
+
+      <!-- Confirmar contraseña -->
+      <div class="mb-6">
+        <label for="confirmPassword" class="block text-gray-700 text-sm font-normal mb-2">Confirmar contraseña:</label>
+        <input id="confirmPassword" type="password" formControlName="confirmPassword"
+               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" maxlength="20"/>
+        @if ((registerForm.get('confirmPassword')?.dirty || registerForm.get('confirmPassword')?.touched) && registerForm.errors?.['passwordMismatch']) {
+          <div class="text-red-500 text-xs mt-1">Las contraseñas no coinciden</div>
+        }
+      </div>
+
+      <!-- Botón -->
+      <div class="flex items-center justify-center">
+        <button type="submit"
+                [disabled]="registerForm.invalid"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-normal py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full flex justify-center items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd"
+                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                  clip-rule="evenodd" />
+          </svg>
+          Registrarse
+        </button>
+      </div>
+    </form>
+
+    <div class="text-center mt-4">
+      ¿Ya tienes una cuenta?
+      <a routerLink="/login" class="text-blue-500 text-sm">Iniciar sesión</a>
     </div>
   </div>
-  
+</div>

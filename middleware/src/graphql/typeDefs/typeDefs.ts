@@ -29,7 +29,10 @@ type Product {
 }
 
 type AuthPayload {
-  token: String!
+  token: String
+  success: Boolean!
+  message: String!
+
 }
 
 type Query {

@@ -24,8 +24,11 @@
 
     <div class="flex items-center justify-self-end">
       <!--TODO: IMPLEMENTAR PAGINA DE PERFIL -->
+      @if (!isUserLoggedIn()){
       <a routerLink="/login"><img src="/user_icon.svg" alt="User" width="24" height="24" class="flex-shrink-0" /> </a>
-      
+      } @else {
+         <app-dropdown-menu></app-dropdown-menu>
+      }
       <img src="/cart_icon.svg" alt="Cart" width="24" height="24" class="ml-2 md:ml-4 flex-shrink-0" />
     </div>
 

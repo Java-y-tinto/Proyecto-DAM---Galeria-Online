@@ -49,7 +49,10 @@ export interface loginResponse {
   }
 
 export type AuthPayload = {
-  token: String
+  token: string
+  success: boolean
+  message: string
+
 }
 
 // --- Define la Query GraphQL ---
@@ -89,8 +92,10 @@ const GET_PRODUCT_BY_ID = gql`
 `;
 
 const REGISTER_USER_MUTATION = gql`
-  mutation registerUser($name: String!, $email: String!, $password: String!) {
-    registerUser(name: $name, email: $email, password: $password) {
+  mutation registerUser($name: String!, $email: String!, $passwd: String!) {
+    registerUser(name: $name, email: $email, passwd: $passwd) {
+        success
+        message
         token
     }
 }
@@ -132,10 +137,10 @@ export class GraphqlService {
         map((result) => result.data.productById)
       );
   }
-  registerUser(name: string, email: string, password: string) {
+  registerUser(name: string, email: string, passwd: string) {
     return this.apollo.mutate({
       mutation: REGISTER_USER_MUTATION,
-      variables: { name, email, password },
+      variables: { name, email, passwd },
     });
   }
   loginUser(email: string, password: string) {

@@ -6,7 +6,7 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './graphql/typeDefs/typeDefs.js';
 import { resolvers } from './graphql/resolvers/resolvers.js';
-import { verifyToken, authenticateUser } from './services/auth.js';
+import { verifyToken, authenticateUser,registerUser } from './services/auth.js';
 import { odooClient,connectOdoo } from './instances/odooClientInstance.js';
 
 dotenv.config();
@@ -68,6 +68,10 @@ const test = (async () => {
   console.log("Intentando autenticar usuario que no existe")  
   var user2 = await authenticateUser('pene@pene.com', '1234');
   console.log(user2);
+
+  console.log("Intentando registrar un usuario");
+  var user3 = await registerUser({name: 'prueba',email: 'prueba@test.com',passwd: '1234'});
+  console.log(user3);
 })
 
 

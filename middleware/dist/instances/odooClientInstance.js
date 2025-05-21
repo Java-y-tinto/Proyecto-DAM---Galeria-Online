@@ -123,7 +123,7 @@ export const createUserClient = async (username, password) => {
 export const findUserbyEmail = async (email) => {
     try {
         const users = await odooClient.searchRead('res.users', [['email', '=', email]], ['id']);
-        return users;
+        return users.length > 0 ? users : null;
     }
     catch (error) {
         console.log(error);

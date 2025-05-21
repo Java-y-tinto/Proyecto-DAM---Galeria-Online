@@ -1,10 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import {GraphqlService, loginResponse } from '../../services/graphql.service';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import clienteEntorno from '../../clientVariables.environment';
+import { validate } from 'graphql';
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule,RouterLink],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })
@@ -12,12 +14,14 @@ export class LoginComponent {
   private fb = inject(FormBuilder);
   private database = inject(GraphqlService);
   private router = inject(Router);
+  private environment = clienteEntorno;
+
 
   loading: Boolean = false;
   loginInvalid: Boolean = false;
   loginForm: FormGroup = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    email: ['', [Validators.required, Validators.email,Validators.maxLength(50)]],
+    password: ['', [Validators.required, Validators.minLength(6),Validators.maxLength(20)]]
   });
 
   onSubmit(): void {
@@ -34,6 +38,9 @@ export class LoginComponent {
           } else {
             //El usuario es valido
             localStorage.setItem('token', resultado.login.token);
+            this.environment.setIsLoggedIn(true);
+            this.environment.setJWT(resultado.login.token);
+
             this.router.navigate(['']);
           }
         }

@@ -1,0 +1,25 @@
+<div class="inline-block relative user-dropdown-container" (mouseenter)="showDropdown()" (mouseleave)="hideDropdownDelayed()">
+  <!-- Icono de usuario -->
+  <img 
+    src="/user_icon.svg" 
+    alt="User" 
+    width="24" 
+    height="24" 
+    class="flex-shrink-0 cursor-pointer" 
+    (click)="toggleDropdown()"
+  />
+  
+  <!-- Área de conexión invisible -->
+  <div class="absolute h-2 w-full top-full left-0"></div>
+  
+  <!-- Menú desplegable -->
+  <div
+    class="absolute right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-md w-48 py-2 z-10 transition-opacity duration-150"
+    [ngClass]="{'opacity-0 invisible': !isDropdownVisible, 'opacity-100 visible': isDropdownVisible}"
+  >
+    <a routerLink="/profile" class="block px-4 py-2 hover:bg-gray-100">Perfil</a>
+    <a routerLink="/my-orders" class="block px-4 py-2 hover:bg-gray-100">Mis pedidos</a>
+    <hr class="my-1 border-gray-200">
+    <button (click)="logout()" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Salir</button>
+  </div>
+</div>

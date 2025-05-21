@@ -177,10 +177,92 @@ export const findUserbyEmail = async (email: string) => {
             [['email', '=', email]],
             ['id']
         );
-        return users;
+        return users.length > 0 ? users : null;
     } catch (error) {
         console.log(error);
     }
 };
+
+export const getUserCart = async (uid: number) => {
+    const partner_id = await getOdooPartnerId(uid);
+    if (!partner_id) return null;
+   const orders = await odooClient.searchRead(
+    'sale.order',
+    [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+    ['id', 'name', 'amount_total', 'amount_tax', 'amount_untaxed', 'access_url']
+  );
+
+  if (orders.length === 0) return null;
+
+    const order = orders[0];
+
+   const lines = await odooClient.searchRead(
+    'sale.order.line',
+    [['order_id', '=', order.id]],
+    ['product_id', 'display_name', 'product_uom_qty', 'price_unit', 'price_subtotal']
+  );
+
+  return {
+    order,
+    lines,
+  };
+}
+
+const getOdooPartnerId = async (uid: number) => {
+    const user = await odooClient.searchRead(
+        'res.users',
+        [['id', '=', uid]],
+        ['partner_id']
+    )
+    if (user.length > 0) {
+        return user[0].partner_id[0];
+    }
+    return null;
+}
+
+export const addToCart = async(uid: number, productId: number, quantity: number) => {
+    // obtener partner id del usuario
+    const partner_id = await getOdooPartnerId(uid);
+    if (!partner_id) return null;
+
+    // Buscar si ya hay un carrito creado
+    const orders = await odooClient.searchRead(
+        'sale.order',
+        [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+        ['id']
+    );
+
+    let order_id: number;
+
+    // Si no hay carrito,creamos uno
+    if (orders.length === 0) {
+        const order = await odooClient.create('sale.order', {
+            partner_id,
+            state: 'draft',
+        });
+        order_id = order;
+    } else {
+        order_id = orders[0].id;
+    }
+
+    // Buscamos si hay un producto igual en el carrito
+    const lines = await odooClient.searchRead(
+        'sale.order.line',
+        [['order_id', '=', order_id]],
+        ['id','product_id','product_uom_qty']
+    );
+
+    if (lines.length === 0) {
+        // Si no lo hay,creamos una linea nueva en el carrito
+        await odooClient.create('sale.order.line', {
+            order_id,
+            product_id: productId,
+            product_uom_qty: quantity,
+        });
+    } else {
+        // Si lo hay, no hacemos nada,ya que solo hay un producto de cada tipo
+        
+    }
+}
 
 export { odooClient };
