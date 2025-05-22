@@ -57,24 +57,6 @@ const startServer = async () => {
   });
 };
 
-const test = (async () => {
-  console.log("Intentando autenticar usuario");
-  var user = await authenticateUser('itsmytesting@mytesting.com', '1234');
-  console.log(user);
-  if (user){
-    console.log("Intentando verificar token");
-    console.log(verifyToken(user.token));
-  }
-  console.log("Intentando autenticar usuario que no existe")  
-  var user2 = await authenticateUser('pene@pene.com', '1234');
-  console.log(user2);
 
-  console.log("Intentando registrar un usuario");
-  var user3 = await registerUser({name: 'prueba',email: 'prueba@test.com',passwd: '1234'});
-  console.log(user3);
-})
-
-
-test();
 
 startServer();

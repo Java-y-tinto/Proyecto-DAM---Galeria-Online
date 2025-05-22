@@ -1,5 +1,5 @@
 import { register } from 'module';
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart,checkoutCart } from '../../instances/odooClientInstance.js';
 import { authenticateUser, generateToken, registerUser } from '../../services/auth.js';
 
 export const resolvers = {
@@ -31,7 +31,43 @@ export const resolvers = {
         console.error(`Resolver: Error al buscar producto:`, error);
         return null;
       }
-    }
+    },
+
+  getCart: async (_: any, __: any, context: any) => {
+  if (!context.user) {
+    // Aquí podrías lanzar un error GraphQL o devolver null
+    throw new Error("No autorizado");
+  }
+
+  const cart = await getUserCart(context.user.uid);
+  if (!cart) return null;
+
+  // En cada línea, obtener el objeto product completo con getProductById
+  const linesWithProducts = await Promise.all(
+    cart.lines.map(async (line) => {
+      // product_id viene como [id, "nombre"], convertimos a string id
+      const productId = line.product_id[0].toString();
+
+      const productArr = await getProductById(productId);
+      const product = productArr && productArr.length > 0 ? productArr[0] : null;
+
+      return {
+        id: line.id,
+        product,
+        display_name: line.display_name,
+        product_uom_qty: line.product_uom_qty,
+        price_unit: line.price_unit,
+        price_subtotal: line.price_subtotal,
+      };
+    })
+  );
+
+  return {
+    order: cart.order,
+    lines: linesWithProducts,
+  };
+},
+
   },
   Mutation: {
     login: async (_: any, { email, password }: any) => {
@@ -69,6 +105,23 @@ export const resolvers = {
           token: null
         }
       }
+    },
+
+    addToCart: async (_: any, { productId }: any,context: any) => {
+      if (!context.user) return { success: false, message: "No autorizado"}
+      return await addToCart(context.user.uid, productId);
+    },
+    removeFromCart: async (_: any, { lineId }: any,context: any) => {
+      if (!context.user) return { success: false, message: "No autorizado"}
+      return await removeFromCart(context.user.uid, lineId);
+    },
+    clearCart: async (_: any, __: any,context: any) => {
+      if (!context.user) return { success: false, message: "No autorizado"}
+      return await clearCart(context.user.uid);
+    },
+    checkoutCart: async (_: any, __: any, context: any) => {
+      if (!context.user) return { success: false, message: "No autorizado"}
+      return await checkoutCart(context.user.uid);
     },
   },
 };

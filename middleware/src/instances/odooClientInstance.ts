@@ -1,8 +1,45 @@
 // @ts-ignore
 import OdooModule from '@fernandoslim/odoo-jsonrpc';
 import dotenv from 'dotenv';
+import { get } from 'http';
 dotenv.config();
 const OdooJSONRpc = (OdooModule as any).default || OdooModule;
+
+
+// interfaces
+export interface CartOperationResult {
+    success: boolean;
+    message: string;
+    order_id?: number;
+    line_id?: number;
+    order_name?: string;
+}
+
+export interface CartLine {
+    id: number;
+    product_id: [number, string];
+    display_name: string;
+    product_uom_qty: number;
+    price_unit: number;
+    price_subtotal: number;
+}
+
+export interface CartOrder {
+    id: number;
+    name: string;
+    amount_total: number;
+    amount_tax: number;
+    amount_untaxed: number;
+    access_url: string;
+}
+
+export interface Cart {
+    order: CartOrder;
+    lines: CartLine[];
+}
+
+
+
 
 const odooConfig = {
     baseUrl: process.env.ODOO_BASE_URL,
@@ -220,49 +257,191 @@ const getOdooPartnerId = async (uid: number) => {
     return null;
 }
 
-export const addToCart = async(uid: number, productId: number, quantity: number) => {
-    // obtener partner id del usuario
-    const partner_id = await getOdooPartnerId(uid);
-    if (!partner_id) return null;
+export const addToCart = async(uid: number, productId: number): Promise<CartOperationResult> => {
+    try {
+        // obtener partner id del usuario
+        const partner_id = await getOdooPartnerId(uid);
+        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
 
-    // Buscar si ya hay un carrito creado
-    const orders = await odooClient.searchRead(
-        'sale.order',
-        [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
-        ['id']
-    );
+        // Buscar si ya hay un carrito creado
+        const orders = await odooClient.searchRead(
+            'sale.order',
+            [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+            ['id']
+        );
 
-    let order_id: number;
+        let order_id: number;
 
-    // Si no hay carrito,creamos uno
-    if (orders.length === 0) {
-        const order = await odooClient.create('sale.order', {
-            partner_id,
-            state: 'draft',
-        });
-        order_id = order;
-    } else {
-        order_id = orders[0].id;
-    }
+        // Si no hay carrito, creamos uno
+        if (orders.length === 0) {
+            order_id = await odooClient.create('sale.order', {
+                partner_id,
+                state: 'draft',
+            });
+        } else {
+            order_id = orders[0].id;
+        }
 
-    // Buscamos si hay un producto igual en el carrito
-    const lines = await odooClient.searchRead(
-        'sale.order.line',
-        [['order_id', '=', order_id]],
-        ['id','product_id','product_uom_qty']
-    );
+        // Verificar si el producto ya está en el carrito
+        const existingLines = await odooClient.searchRead(
+            'sale.order.line',
+            [['order_id', '=', order_id], ['product_id', '=', productId]],
+            ['id']
+        );
 
-    if (lines.length === 0) {
-        // Si no lo hay,creamos una linea nueva en el carrito
-        await odooClient.create('sale.order.line', {
+        if (existingLines.length > 0) {
+            return { 
+                success: false, 
+                message: 'Este cuadro ya está en tu carrito. Solo hay uno disponible.' 
+            };
+        }
+
+        // Crear línea en el carrito (cantidad siempre 1 para cuadros únicos)
+        const lineId = await odooClient.create('sale.order.line', {
             order_id,
             product_id: productId,
-            product_uom_qty: quantity,
+            product_uom_qty: 1, // Siempre 1 porque solo hay un cuadro de cada tipo
         });
-    } else {
-        // Si lo hay, no hacemos nada,ya que solo hay un producto de cada tipo
-        
+
+        return { 
+            success: true, 
+            message: 'Cuadro añadido al carrito',
+            order_id,
+            line_id: lineId
+        };
+    } catch (error) {
+        console.error('Error al añadir al carrito:', error);
+        return { success: false, message: 'Error al añadir al carrito' };
     }
 }
+
+export const removeFromCart = async(uid: number, lineId: number): Promise<CartOperationResult> => {
+    try {
+        // Verificar que la línea pertenece al usuario
+        const partner_id = await getOdooPartnerId(uid);
+        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
+
+        // Verificar que la línea existe y pertenece a un pedido del usuario
+        const lines = await odooClient.searchRead(
+            'sale.order.line',
+            [['id', '=', lineId]],
+            ['order_id']
+        );
+
+        if (lines.length === 0) {
+            return { success: false, message: 'Producto no encontrado en el carrito' };
+        }
+
+        const orderId = lines[0].order_id[0];
+
+        // Verificar que el pedido pertenece al usuario
+        const orders = await odooClient.searchRead(
+            'sale.order',
+            [['id', '=', orderId], ['partner_id', '=', partner_id], ['state', '=', 'draft']],
+            ['id']
+        );
+
+        if (orders.length === 0) {
+            return { success: false, message: 'No autorizado' };
+        }
+
+        // Eliminar la línea
+        await odooClient.unlink('sale.order.line', [lineId]);
+
+        return { success: true, message: 'Producto eliminado del carrito' };
+    } catch (error) {
+        console.error('Error al eliminar del carrito:', error);
+        return { success: false, message: 'Error al eliminar del carrito' };
+    }
+}
+
+// DELETE - Vaciar todo el carrito
+export const clearCart = async(uid: number): Promise<CartOperationResult> => {
+    try {
+        const partner_id = await getOdooPartnerId(uid);
+        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
+
+        // Buscar el carrito activo
+        const orders = await odooClient.searchRead(
+            'sale.order',
+            [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+            ['id']
+        );
+
+        if (orders.length === 0) {
+            return { success: true, message: 'El carrito ya está vacío' };
+        }
+
+        const orderId = orders[0].id;
+
+        // Obtener todas las líneas del pedido
+        const lines = await odooClient.searchRead(
+            'sale.order.line',
+            [['order_id', '=', orderId]],
+            ['id']
+        );
+
+        if (lines.length > 0) {
+            // Eliminar todas las líneas
+            const lineIds = lines.map(line => line.id);
+            await odooClient.unlink('sale.order.line', lineIds);
+        }
+
+        // Opcionalmente, también podrías eliminar el pedido completo
+        // await odooClient.unlink('sale.order', [orderId]);
+
+        return { success: true, message: 'Carrito vaciado' };
+    } catch (error) {
+        console.error('Error al vaciar el carrito:', error);
+        return { success: false, message: 'Error al vaciar el carrito' };
+    }
+}
+
+
+export const checkoutCart = async (uid: number): Promise<CartOperationResult> => {
+  try {
+    const partner_id = await getOdooPartnerId(uid);
+    if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
+
+    // Buscar carrito en borrador
+    const orders = await odooClient.searchRead(
+      'sale.order',
+      [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+      ['id', 'name', 'access_url']
+    );
+
+    if (orders.length === 0) {
+      return { success: false, message: 'No hay ningún carrito activo' };
+    }
+
+    const order = orders[0];
+
+    // Confirmar el pedido (transición del workflow de venta)
+    await odooClient.call('sale.order', 'action_confirm', [[order.id]]);
+
+    // Obtener de nuevo la URL por si cambia (no suele cambiar, pero por seguridad)
+    const [confirmedOrder] = await odooClient.searchRead(
+      'sale.order',
+      [['id', '=', order.id]],
+      ['access_url', 'name']
+    );
+
+    return {
+      success: true,
+      message: 'Pedido confirmado correctamente',
+      order_id: order.id,
+      order_name: confirmedOrder.name,
+      // Devuelve la URL para redirigir al portal (checkout)
+      // ejemplo: /my/orders/43?access_token=xyz
+      // el frontend debe anteponer la URL base de Odoo si es externa
+      line_id: undefined,
+      ...confirmedOrder.access_url && { access_url: confirmedOrder.access_url },
+    };
+  } catch (error) {
+    console.error('[checkoutCart] Error al confirmar pedido:', error);
+    return { success: false, message: 'Error al confirmar el pedido' };
+  }
+};
+
 
 export { odooClient };
