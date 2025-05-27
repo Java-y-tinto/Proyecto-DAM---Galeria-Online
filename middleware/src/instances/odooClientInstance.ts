@@ -59,25 +59,25 @@ const odooClient = new OdooJSONRpc({
 
 export const connectOdoo = async () => {
     try {
-      console.log('Intentando conectar a Odoo...');
-      // Busca el método correcto en la documentación de la librería:
-      // await odooClient.connect();
-      // o await odooClient.authenticate();
-      // o podría ser implícito si las credenciales son correctas...
-      // Si la librería NO requiere conexión explícita y este error
-      // aparece, entonces el problema son las credenciales (paso 2).
-  
-      // Intenta una operación simple para verificar la conexión:
-      const versionInfo = await odooClient;
-            console.log('Conexión a Odoo exitosa. Versión:', versionInfo);
-  
+        console.log('Intentando conectar a Odoo...');
+        // Busca el método correcto en la documentación de la librería:
+        // await odooClient.connect();
+        // o await odooClient.authenticate();
+        // o podría ser implícito si las credenciales son correctas...
+        // Si la librería NO requiere conexión explícita y este error
+        // aparece, entonces el problema son las credenciales (paso 2).
+
+        // Intenta una operación simple para verificar la conexión:
+        const versionInfo = await odooClient;
+        console.log('Conexión a Odoo exitosa. Versión:', versionInfo);
+
     } catch (error) {
-      console.error('ERROR al conectar/autenticar con Odoo:', error);
-      // Si falla aquí, el servidor no debería continuar o las queries fallarán.
-      // Podrías lanzar el error para detener el inicio del servidor:
-      // throw new Error('No se pudo conectar a Odoo.');
+        console.error('ERROR al conectar/autenticar con Odoo:', error);
+        // Si falla aquí, el servidor no debería continuar o las queries fallarán.
+        // Podrías lanzar el error para detener el inicio del servidor:
+        // throw new Error('No se pudo conectar a Odoo.');
     }
-  };
+};
 
 export const getProducts = async () => {
     try {
@@ -100,36 +100,36 @@ export const getProductById = async (id: string) => {
             [['id', '=', id]],
             ['id', 'name', 'description_sale', 'list_price', 'image_1920', 'image_512', 'product_tmpl_id']
         );
-        
+
         if (!products || products.length === 0) {
             return null;
         }
-        
+
         const product = products[0];
-        
+
         // Obtener los atributos del producto
         if (product.product_tmpl_id) {
             const templateId = product.product_tmpl_id[0]; // Odoo devuelve [id, name]
-            
+
             // Obtener líneas de atributos de la plantilla
             const attributeLines = await odooClient.searchRead(
                 'product.template.attribute.line',
                 [['product_tmpl_id', '=', templateId]],
                 ['attribute_id', 'value_ids']
             );
-            
+
             // Obtener información de atributos y valores
             let attributes = [];
             for (const line of attributeLines) {
                 const attributeId = line.attribute_id[0];
-                
+
                 // Obtener detalles del atributo
                 const attributeDetails = await odooClient.searchRead(
                     'product.attribute',
                     [['id', '=', attributeId]],
                     ['name', 'display_type']
                 );
-                
+
                 // Obtener valores del atributo
                 const valueIds = line.value_ids;
                 const attributeValues = await odooClient.searchRead(
@@ -137,7 +137,7 @@ export const getProductById = async (id: string) => {
                     [['id', 'in', valueIds]],
                     ['name', 'html_color']
                 );
-                
+
                 // Añadir a la lista de atributos
                 attributes.push({
                     id: attributeId,
@@ -150,20 +150,20 @@ export const getProductById = async (id: string) => {
                     }))
                 });
             }
-            
+
             // Añadir atributos al producto
             product.attributes = attributes;
-            
+
             // Obtener los valores específicos de esta variante
             const variantAttributeValues = await odooClient.searchRead(
                 'product.template.attribute.value',
                 [['product_tmpl_id', '=', templateId]],
                 ['product_attribute_value_id', 'price_extra']
             );
-            
+
             product.variant_attributes = variantAttributeValues;
         }
-        
+
         return [product];
     } catch (error) {
         console.error("Error en getProductById:", error);
@@ -181,13 +181,13 @@ export const getProductsByCategory = async (categoryName: string) => {
 
     const categoryId = category[0].id;
     console.log(categoryId);
-/*
-
-*/
+    /*
+    
+    */
     return odooClient.searchRead(
         'product.product',
         [['categ_id', '=', categoryId]],
-        ['name', 'list_price', 'categ_id', 'image_1920','image_512']
+        ['name', 'list_price', 'categ_id', 'image_1920', 'image_512']
     );
 };
 
@@ -223,26 +223,26 @@ export const findUserbyEmail = async (email: string) => {
 export const getUserCart = async (uid: number) => {
     const partner_id = await getOdooPartnerId(uid);
     if (!partner_id) return null;
-   const orders = await odooClient.searchRead(
-    'sale.order',
-    [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
-    ['id', 'name', 'amount_total', 'amount_tax', 'amount_untaxed', 'access_url']
-  );
+    const orders = await odooClient.searchRead(
+        'sale.order',
+        [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+        ['id', 'name', 'amount_total', 'amount_tax', 'amount_untaxed', 'access_url']
+    );
 
-  if (orders.length === 0) return null;
+    if (orders.length === 0) return null;
 
     const order = orders[0];
 
-   const lines = await odooClient.searchRead(
-    'sale.order.line',
-    [['order_id', '=', order.id]],
-    ['product_id', 'display_name', 'product_uom_qty', 'price_unit', 'price_subtotal']
-  );
+    const lines = await odooClient.searchRead(
+        'sale.order.line',
+        [['order_id', '=', order.id]],
+        ['product_id', 'display_name', 'product_uom_qty', 'price_unit', 'price_subtotal']
+    );
 
-  return {
-    order,
-    lines,
-  };
+    return {
+        order,
+        lines,
+    };
 }
 
 export const getOdooPartnerId = async (uid: number) => {
@@ -257,7 +257,7 @@ export const getOdooPartnerId = async (uid: number) => {
     return null;
 }
 
-export const addToCart = async(uid: number, productId: number): Promise<CartOperationResult> => {
+export const addToCart = async (uid: number, productId: number): Promise<CartOperationResult> => {
     try {
         // obtener partner id del usuario
         const partner_id = await getOdooPartnerId(uid);
@@ -290,9 +290,9 @@ export const addToCart = async(uid: number, productId: number): Promise<CartOper
         );
 
         if (existingLines.length > 0) {
-            return { 
-                success: false, 
-                message: 'Este cuadro ya está en tu carrito. Solo hay uno disponible.' 
+            return {
+                success: false,
+                message: 'Este cuadro ya está en tu carrito. Solo hay uno disponible.'
             };
         }
 
@@ -303,8 +303,8 @@ export const addToCart = async(uid: number, productId: number): Promise<CartOper
             product_uom_qty: 1, // Siempre 1 porque solo hay un cuadro de cada tipo
         });
 
-        return { 
-            success: true, 
+        return {
+            success: true,
             message: 'Cuadro añadido al carrito',
             order_id,
             line_id: lineId
@@ -315,7 +315,7 @@ export const addToCart = async(uid: number, productId: number): Promise<CartOper
     }
 }
 
-export const removeFromCart = async(uid: number, lineId: number): Promise<CartOperationResult> => {
+export const removeFromCart = async (uid: number, lineId: number): Promise<CartOperationResult> => {
     try {
         // Verificar que la línea pertenece al usuario
         const partner_id = await getOdooPartnerId(uid);
@@ -345,9 +345,10 @@ export const removeFromCart = async(uid: number, lineId: number): Promise<CartOp
             return { success: false, message: 'No autorizado' };
         }
 
-        // Eliminar la línea
-        await odooClient.unlink('sale.order.line', [lineId]);
+        console.log('[removeFromCart] Eliminando línea con delete...');
+        await odooClient.delete('sale.order.line', lineId);
 
+        console.log('[removeFromCart] Línea eliminada exitosamente');
         return { success: true, message: 'Producto eliminado del carrito' };
     } catch (error) {
         console.error('Error al eliminar del carrito:', error);
@@ -356,7 +357,7 @@ export const removeFromCart = async(uid: number, lineId: number): Promise<CartOp
 }
 
 // DELETE - Vaciar todo el carrito
-export const clearCart = async(uid: number): Promise<CartOperationResult> => {
+export const clearCart = async (uid: number): Promise<CartOperationResult> => {
     try {
         const partner_id = await getOdooPartnerId(uid);
         if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
@@ -399,48 +400,48 @@ export const clearCart = async(uid: number): Promise<CartOperationResult> => {
 
 
 export const checkoutCart = async (uid: number): Promise<CartOperationResult> => {
-  try {
-    const partner_id = await getOdooPartnerId(uid);
-    if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
+    try {
+        const partner_id = await getOdooPartnerId(uid);
+        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
 
-    // Buscar carrito en borrador
-    const orders = await odooClient.searchRead(
-      'sale.order',
-      [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
-      ['id', 'name', 'access_url']
-    );
+        // Buscar carrito en borrador
+        const orders = await odooClient.searchRead(
+            'sale.order',
+            [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
+            ['id', 'name', 'access_url']
+        );
 
-    if (orders.length === 0) {
-      return { success: false, message: 'No hay ningún carrito activo' };
+        if (orders.length === 0) {
+            return { success: false, message: 'No hay ningún carrito activo' };
+        }
+
+        const order = orders[0];
+
+        // Confirmar el pedido (transición del workflow de venta)
+        await odooClient.call('sale.order', 'action_confirm', [[order.id]]);
+
+        // Obtener de nuevo la URL por si cambia (no suele cambiar, pero por seguridad)
+        const [confirmedOrder] = await odooClient.searchRead(
+            'sale.order',
+            [['id', '=', order.id]],
+            ['access_url', 'name']
+        );
+
+        return {
+            success: true,
+            message: 'Pedido confirmado correctamente',
+            order_id: order.id,
+            order_name: confirmedOrder.name,
+            // Devuelve la URL para redirigir al portal (checkout)
+            // ejemplo: /my/orders/43?access_token=xyz
+            // el frontend debe anteponer la URL base de Odoo si es externa
+            line_id: undefined,
+            ...confirmedOrder.access_url && { access_url: confirmedOrder.access_url },
+        };
+    } catch (error) {
+        console.error('[checkoutCart] Error al confirmar pedido:', error);
+        return { success: false, message: 'Error al confirmar el pedido' };
     }
-
-    const order = orders[0];
-
-    // Confirmar el pedido (transición del workflow de venta)
-    await odooClient.call('sale.order', 'action_confirm', [[order.id]]);
-
-    // Obtener de nuevo la URL por si cambia (no suele cambiar, pero por seguridad)
-    const [confirmedOrder] = await odooClient.searchRead(
-      'sale.order',
-      [['id', '=', order.id]],
-      ['access_url', 'name']
-    );
-
-    return {
-      success: true,
-      message: 'Pedido confirmado correctamente',
-      order_id: order.id,
-      order_name: confirmedOrder.name,
-      // Devuelve la URL para redirigir al portal (checkout)
-      // ejemplo: /my/orders/43?access_token=xyz
-      // el frontend debe anteponer la URL base de Odoo si es externa
-      line_id: undefined,
-      ...confirmedOrder.access_url && { access_url: confirmedOrder.access_url },
-    };
-  } catch (error) {
-    console.error('[checkoutCart] Error al confirmar pedido:', error);
-    return { success: false, message: 'Error al confirmar el pedido' };
-  }
 };
 
 

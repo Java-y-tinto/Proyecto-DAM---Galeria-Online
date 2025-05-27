@@ -29,7 +29,11 @@
       } @else {
          <app-dropdown-menu></app-dropdown-menu>
       }
-      <img src="/cart_icon.svg" alt="Cart" width="24" height="24" class="ml-2 md:ml-4 flex-shrink-0" />
+      @if (!isUserLoggedIn()){
+              <img src="/cart_icon.svg" alt="Cart" width="24" height="24" class="ml-2 md:ml-4 flex-shrink-0" />
+
+      }
+      <app-cart-dropdown-menu></app-cart-dropdown-menu>
     </div>
 
   </div>

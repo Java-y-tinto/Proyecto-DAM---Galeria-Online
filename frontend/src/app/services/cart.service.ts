@@ -99,51 +99,59 @@ export class CartService {
    * Agregar producto al carrito
    */
   addProduct(productId: number, product?: Product): Observable<boolean> {
-    const productIdStr = productId.toString();
+  const productIdStr = productId.toString();
 
-    // Validación: producto ya en carrito
-    if (this.isProductInCart(productIdStr)) {
-      console.warn('⚠️ [Cart Service] Producto ya está en el carrito:', productId);
-      this.updateState({ error: 'Este cuadro ya está en tu carrito' });
-      return of(false);
-    }
+  // Validación: producto ya en carrito
+  if (this.isProductInCart(productIdStr)) {
+    console.warn('⚠️ [Cart Service] Producto ya está en el carrito:', productId);
+    this.updateState({ error: 'Este cuadro ya está en tu carrito' });
+    return of(false);
+  }
 
-    console.log('➕ [Cart Service] Agregando producto:', productId);
+  console.log('➕ [Cart Service] Agregando producto:', productId);
+  console.log('🔍 [Cart Service] Llamando a graphqlService.addToCart...');
 
-    // Optimistic update: agregar inmediatamente a la UI
-    if (product) {
-      this.addProductOptimistically(productIdStr, product);
-    }
+  // Optimistic update: agregar inmediatamente a la UI
+  if (product) {
+    this.addProductOptimistically(productIdStr, product);
+  }
 
-    this.updateState({ loading: true, error: null });
+  this.updateState({ loading: true, error: null });
 
-    return this.graphqlService.addToCart(productId).pipe(
-      tap((result: any) => {
-        result = result as CartOperationResult;
-        if (result.success) {
-          console.log('✅ [Cart Service] Producto agregado exitosamente');
-          // Recargar carrito para obtener datos actualizados del servidor
-          this.loadCart().subscribe();
-        } else {
-          console.error('❌ [Cart Service] Error del servidor:', result.message);
-          this.updateState({ error: result.message });
-          // Rollback optimistic update
-          this.removeProductOptimistically(productIdStr);
-        }
-      }),
-      catchError(error => {
-        console.error('❌ [Cart Service] Error agregando producto:', error);
-        this.updateState({ error: 'Error al agregar el cuadro al carrito' });
+  return this.graphqlService.addToCart(productId).pipe(
+    tap((result: CartOperationResult) => {
+      console.log('📥 [Cart Service] Resultado recibido:', result);
+      console.log('📥 [Cart Service] result.success:', result.success);
+      console.log('📥 [Cart Service] result.message:', result.message);
+      
+      if (result.success === true) {
+        console.log('✅ [Cart Service] Producto agregado exitosamente');
+        // Recargar carrito para obtener datos actualizados del servidor
+        this.loadCart().subscribe();
+      } else {
+        console.error('❌ [Cart Service] Error del servidor:', result.message);
+        this.updateState({ error: String(result.message) });
         // Rollback optimistic update
         this.removeProductOptimistically(productIdStr);
-        return of(false);
-      }),
-      finalize(() => {
-        this.updateState({ loading: false });
-      }),
-      map(result => result.success)
-    );
-  }
+      }
+    }),
+    catchError(error => {
+      console.error('❌ [Cart Service] Error en catchError:', error);
+      this.updateState({ error: 'Error al agregar el cuadro al carrito' });
+      // Rollback optimistic update
+      this.removeProductOptimistically(productIdStr);
+      return of({ success: false, message: 'Error de conexión' } as unknown as CartOperationResult);
+    }),
+    finalize(() => {
+      console.log('🏁 [Cart Service] Finalizando addProduct');
+      this.updateState({ loading: false });
+    }),
+    map((result: CartOperationResult) => {
+      console.log('🎯 [Cart Service] Mapeando resultado final:', result.success);
+      return result.success === true;
+    })
+  );
+}
 
   /**
    * Remover producto del carrito

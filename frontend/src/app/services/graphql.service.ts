@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { map, tap,catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { ApolloClient, ApolloQueryResult, InMemoryCache } from '@apollo/client/core';
 
 // --- Interfaz para el Producto ---
@@ -58,23 +59,23 @@ export type AuthPayload = {
 export type CartOperationResult = {
   success: Boolean
   message: String
-  order_id: Number
-  line_id: Number
+  order_id: number
+  line_id: number
   order_name: String
   access_url: String
 }
 
 export type CartOrder = {
-  id: Number
+  id: number
   name: String
-  amount_total: Number
-  amount_tax: Number
-  amount_untaxed: Number
+  amount_total: number
+  amount_tax: number
+  amount_untaxed: number
   access_url: String
 }
 
 export type CartLine = {
-  id: Number
+  id: number
   product: Product
 
 }
@@ -263,10 +264,53 @@ export class GraphqlService {
     });
   }
   addToCart(productId: number) {
+     console.log('🚀 [GraphQL Service] *** INICIANDO addToCart ***');
+  console.log('🚀 [GraphQL Service] ProductId:', productId, 'Tipo:', typeof productId);
+  
     return this.apollo.mutate({
       mutation: ADD_TO_CART_MUTATION,
       variables: { productId },
-    });
+    }).pipe(
+      tap(result => {
+        console.log('📥 [GraphQL Service] *** RESPUESTA APOLLO ***');
+        console.log('📥 [GraphQL Service] result completo:', result);
+        console.log('📥 [GraphQL Service] result.data:', result.data);
+        console.log('📥 [GraphQL Service] result.errors:', result.errors);
+        console.log('📥 [GraphQL Service] result.loading:', result.loading);
+      }),
+      map((result) => {
+                console.log('🔄 [GraphQL Service] *** MAPEANDO RESULTADO ***');
+        
+        if (result.errors && result.errors.length > 0) {
+          console.error('❌ [GraphQL Service] GraphQL Errors:', result.errors);
+          return {
+            success: false,
+            message: result.errors[0]?.message || 'Error GraphQL'
+          };
+        }
+        
+        if (!result.data) {
+          console.error('❌ [GraphQL Service] No hay data en la respuesta');
+          return {
+            success: false,
+            message: 'Sin datos en la respuesta'
+          };
+        }
+        
+        
+        
+        const finalResult = (result as any).data.addToCart;
+        console.log('✅ [GraphQL Service] Resultado procesado:', finalResult);
+        return finalResult;
+      }),
+      catchError(error => {
+        console.error('💥 [GraphQL Service] Error en pipe:', error);
+        return of({
+          success: false,
+          message: 'Error de conexión: ' + error.message
+        });
+      })
+    )
   }
   getCart(): Observable<Cart | null> {
     console.log('🚀 [GraphQL Service] Iniciando query getCart...');

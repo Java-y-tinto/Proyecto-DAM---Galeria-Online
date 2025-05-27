@@ -94,15 +94,6 @@ export const registerUser = async ({ name, email, passwd }) => {
         if (portalGroupId) {
             userData.groups_id = [[6, false, [portalGroupId]]];
         }
-        /*
-            const userId = await odooClient.create('res.users', {
-              name,
-              login: email,
-              password: passwd,
-              partner_id: partnerId,
-              groups_id: [[6, false, ['base.group_portal']]], // Asignar el grupo portal para que el usuario solo pueda acceder a sus datos
-            });
-        */
         const userId = await odooClient.create('res.users', userData);
         if (!userId)
             throw new Error('No se pudo crear el usuario');

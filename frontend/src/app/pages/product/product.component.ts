@@ -114,10 +114,19 @@ cargarProducto(): void {
     if (this.producto) {
       // Lógica para añadir al carrito - puedes implementar un servicio de carrito
       console.log('Añadiendo al carrito:', this.producto);
-      this.cartService.addProduct(Number(this.producto.id), this.producto).subscribe((result) => {
-        console.log('Producto agregado al carrito:', result);
-      })
-      
+      this.cartService.addProduct(Number(this.producto.id), this.producto).subscribe({
+        next: (result) => {
+          if (result) {
+            console.log('Producto agregado al carrito:', result);
+          }
+          else{
+            console.log('No se pudo agregar el producto al carrito');
+          }
+        },
+        error: (error) => {
+          console.error('Error al agregar el producto al carrito:', error);
+        }
+      });
     }
   }
 }

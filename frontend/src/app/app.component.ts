@@ -5,10 +5,11 @@ import { DropdownMenuComponent } from './components/dropdown-menu/dropdown-menu.
 import clienteEntorno from './clientVariables.environment';
 import { CartService } from './services/cart.service';
 import { inject } from '@angular/core';
+import { CartDropdownMenuComponent } from './components/cart-dropdown-menu/cart-dropdown-menu.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, DropdownMenuComponent],
+  imports: [RouterOutlet, RouterLink, DropdownMenuComponent,CartDropdownMenuComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

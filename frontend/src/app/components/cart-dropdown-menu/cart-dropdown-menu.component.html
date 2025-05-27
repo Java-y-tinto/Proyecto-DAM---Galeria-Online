@@ -1,0 +1,126 @@
+<div class="inline-block relative cart-dropdown-container" (mouseenter)="showDropdown()" (mouseleave)="hideDropdownDelayed()">
+  <!-- Icono del carrito con contador -->
+  <div class="relative cursor-pointer" (click)="goToCart()">
+    <img 
+      src="/cart_icon.svg" 
+      alt="Carrito" 
+      width="24" 
+      height="24" 
+      class="flex-shrink-0"
+    />
+    <!-- Contador de productos -->
+    @if ((cartItemCount$ | async)! > 0) {
+      <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
+        {{ cartItemCount$ | async }}
+      </span>
+    }
+  </div>
+  
+  <!-- Área de conexión invisible -->
+  <div class="absolute h-2 w-full top-full left-0"></div>
+  
+  <!-- Menú desplegable del carrito -->
+  <div
+    class="absolute right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-md w-80 py-2 z-10 transition-opacity duration-150"
+    [ngClass]="{'opacity-0 invisible': !isDropdownVisible, 'opacity-100 visible': isDropdownVisible}"
+  >
+    <!-- Header del dropdown -->
+    <div class="px-4 py-2 border-b border-gray-200">
+      <h3 class="font-semibold text-gray-800">Tu Carrito</h3>
+    </div>
+
+    <!-- Loading state -->
+    @if (isLoading$ | async) {
+      <div class="px-4 py-6 text-center">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
+        <p class="text-sm text-gray-500 mt-2">Cargando...</p>
+      </div>
+    }
+
+    <!-- Carrito vacío -->
+    @else if ((cartItemCount$ | async) === 0) {
+      <div class="px-4 py-6 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h15M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
+        </svg>
+        <p class="text-sm text-gray-500 mt-2">Tu carrito está vacío</p>
+        <p class="text-xs text-gray-400">Explora nuestra galería de cuadros</p>
+      </div>
+    }
+
+    <!-- Productos en el carrito -->
+    @else {
+      <div class="max-h-64 overflow-y-auto">
+        @for (item of cartItems$ | async; track item.id) {
+          <div class="px-4 py-3 hover:bg-gray-50 border-b border-gray-100 flex items-center space-x-3">
+            <!-- Imagen del producto -->
+            <div class="flex-shrink-0">
+              @if (item.product.image_512) {
+                <img 
+                  [src]="'data:image/jpeg;base64,' + item.product.image_512" 
+                  [alt]="item.product.name"
+                  class="h-12 w-12 object-cover rounded"
+                />
+              } @else {
+                <div class="h-12 w-12 bg-gray-200 rounded flex items-center justify-center">
+                  <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              }
+            </div>
+
+            <!-- Información del producto -->
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">
+                {{ item.product.name  }}
+              </p>
+              <p class="text-sm text-gray-500">
+                {{ item.product.list_price| currency:'EUR':'symbol':'1.2-2' }}
+              </p>
+            </div>
+
+            <!-- Botón eliminar -->
+            <button
+              (click)="removeFromCart(item.id)"
+              class="flex-shrink-0 text-red-400 hover:text-red-600 transition-colors duration-150"
+              title="Eliminar del carrito"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- Footer con total y botones -->
+      <div class="px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <!-- Total -->
+        <div class="flex justify-between items-center mb-3">
+          <span class="text-sm font-medium text-gray-900">Total:</span>
+          <span class="text-lg font-bold text-gray-900">
+            {{ cartTotal$ | async | currency:'EUR':'symbol':'1.2-2' }}
+          </span>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex space-x-2">
+          <button
+            (click)="goToCart()"
+            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors duration-150"
+          >
+            Ver Carrito
+          </button>
+          <button
+            routerLink="/checkout"
+            (click)="isDropdownVisible = false"
+            class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors duration-150"
+          >
+            Comprar
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

@@ -212,8 +212,9 @@ export const removeFromCart = async (uid, lineId) => {
         if (orders.length === 0) {
             return { success: false, message: 'No autorizado' };
         }
-        // Eliminar la línea
-        await odooClient.unlink('sale.order.line', [lineId]);
+        console.log('[removeFromCart] Eliminando línea con delete...');
+        await odooClient.delete('sale.order.line', lineId);
+        console.log('[removeFromCart] Línea eliminada exitosamente');
         return { success: true, message: 'Producto eliminado del carrito' };
     }
     catch (error) {
