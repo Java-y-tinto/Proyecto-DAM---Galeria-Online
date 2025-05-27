@@ -73,17 +73,53 @@ export const registerUser = async ({ name, email, passwd }) => {
             name,
             email
         });
+        // Buscar el ID del grupo portal dinámicamente
+        const portalGroups = await odooClient.searchRead('res.groups', [['category_id.xml_id', '=', 'base.module_category_user_type'], ['name', '=', 'Portal']], ['id']);
+        let portalGroupId = null;
+        if (portalGroups.length > 0) {
+            portalGroupId = portalGroups[0].id;
+            console.log('✅ [Auth Service] Portal Group ID encontrado:', portalGroupId);
+        }
+        else {
+            console.warn('⚠️ [Auth Service] No se encontró el grupo Portal, creando usuario sin grupos específicos');
+        }
         // Creacion de usuario de odoo
-        const userId = await odooClient.create('res.users', {
+        const userData = {
             name,
             login: email,
             password: passwd,
             partner_id: partnerId,
-            groups_id: [[6, false, []]], // No asignar grupos para no dar acceso al backend Odoo
-        });
+            groups_id: [],
+        };
+        if (portalGroupId) {
+            userData.groups_id = [[6, false, [portalGroupId]]];
+        }
+        /*
+            const userId = await odooClient.create('res.users', {
+              name,
+              login: email,
+              password: passwd,
+              partner_id: partnerId,
+              groups_id: [[6, false, ['base.group_portal']]], // Asignar el grupo portal para que el usuario solo pueda acceder a sus datos
+            });
+        */
+        const userId = await odooClient.create('res.users', userData);
         if (!userId)
             throw new Error('No se pudo crear el usuario');
         console.log('✅ [Auth Service] Usuario registrado, UID:', userId);
+        // Crear registro de carrito vacio
+        try {
+            console.log('🛒 [Auth Service] Creando carrito inicial para el usuario...');
+            const orderId = await odooClient.create('sale.order', {
+                partner_id: partnerId,
+                state: 'draft',
+            });
+            console.log('✅ [Auth Service] Carrito inicial creado con ID:', orderId);
+        }
+        catch (cartError) {
+            console.error('⚠️ [Auth Service] Error creando carrito inicial (no crítico):', cartError);
+            // No lanzar error aquí porque el usuario se ha creado correctamente
+        }
         const token = await generateToken({ uid: userId, email });
         return { token };
     }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Apollo,gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { ApolloClient,ApolloQueryResult,InMemoryCache } from '@apollo/client/core';
 
 // --- Interfaz para el Producto ---
@@ -119,8 +119,8 @@ const GET_PRODUCT_BY_ID = gql`
 `;
 
 const GET_USER_CART = gql`
-  query getCart($userId: String!) {
-    getCart(userId: $userId) {
+  query GetCart {
+    getCart {
       order {
         id
         name
@@ -131,15 +131,21 @@ const GET_USER_CART = gql`
       }
       lines {
         id
-        product_id
+        product {
+          id
+          name
+          list_price
+          image_512
+        }
+        display_name
         product_uom_qty
         price_unit
         price_subtotal
-        display_name
       }
     }
   }
-`
+`;
+
 
 const GET_PARTNER_ID = gql`
 query getPartnerId {
@@ -225,14 +231,27 @@ export class GraphqlService {
       variables: { productId },
     });
   }
-  getUserCart(userId: string ) {
+  getCart(): Observable<Cart | null> {
+    console.log('🚀 [GraphQL Service] Iniciando query getCart...');
+    
     return this.apollo
-      .query<{ getUserCart: Cart }>({
+      .query<{ getCart: Cart | null }>({
         query: GET_USER_CART,
-        variables: { userId },
+        fetchPolicy: 'network-only',
+        errorPolicy: 'all'
       })
       .pipe(
-        map((result) => result.data.getUserCart)
+        tap((result: any) => {
+          console.log('📥 [GraphQL Service] Respuesta getCart recibida:', result);
+        }),
+        map((result: ApolloQueryResult<{ getCart: Cart | null }>) => {
+          if (result.errors) {
+            console.error('❌ [GraphQL Service] Errores en getCart:', result.errors);
+            return null;
+          }
+          console.log('✅ [GraphQL Service] getCart exitoso:', result.data.getCart);
+          return result.data.getCart;
+        })
       );
   }
    getPartnerId(): Observable<ApolloQueryResult<{ getPartnerId: number; }>> {

@@ -114,18 +114,7 @@ cargarProducto(): void {
       // Lógica para añadir al carrito - puedes implementar un servicio de carrito
       console.log('Añadiendo al carrito:', this.producto);
       
-      // Ejemplo de integración con un servicio de carrito
-      /*
-      this.carritoService.agregarProducto({
-        id: this.producto.id,
-        nombre: this.producto.nombre,
-        precio: this.producto.precio,
-        cantidad: 1,
-        imagen: this.imagenesProducto.length > 0 ? this.imagenesProducto[0] : ''
-      });
-      */
       
-      // Aquí podrías mostrar una notificación de éxito
     }
   }
 }

@@ -1,10 +1,10 @@
 import { Component, OnDestroy } from '@angular/core';
-import { Router,RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import clienteEntorno from '../../clientVariables.environment';
 @Component({
   selector: 'app-dropdown-menu',
-  imports: [NgClass,RouterLink],
+  imports: [NgClass],
   templateUrl: './dropdown-menu.component.html',
   styleUrl: './dropdown-menu.component.scss'
 })

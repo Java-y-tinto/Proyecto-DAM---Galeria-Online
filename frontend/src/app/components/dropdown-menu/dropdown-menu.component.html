@@ -17,8 +17,8 @@
     class="absolute right-0 mt-2 bg-white text-gray-800 shadow-lg rounded-md w-48 py-2 z-10 transition-opacity duration-150"
     [ngClass]="{'opacity-0 invisible': !isDropdownVisible, 'opacity-100 visible': isDropdownVisible}"
   >
-    <a routerLink="/profile" class="block px-4 py-2 hover:bg-gray-100">Perfil</a>
-    <a routerLink="/my-orders" class="block px-4 py-2 hover:bg-gray-100">Mis pedidos</a>
+    <a href="http://localhost:8069/my" class="block px-4 py-2 hover:bg-gray-100">Perfil</a>
+    <a href="http://localhost:8069/my/orders/" class="block px-4 py-2 hover:bg-gray-100">Mis pedidos</a>
     <hr class="my-1 border-gray-200">
     <button (click)="logout()" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Salir</button>
   </div>

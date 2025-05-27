@@ -38,7 +38,7 @@ export class AppComponent implements OnInit {
       next: (partnerId) => {
        this.environment.setPartnerId(partnerId.data.getPartnerId);
        // Obtener el carrito del usuario
-       this.db.getUserCart(partnerId.data.getPartnerId.toString()).subscribe({
+       this.db.getCart().subscribe({
          next: (cart) => {
           console.log(cart)
            this.environment.setCart(cart);
