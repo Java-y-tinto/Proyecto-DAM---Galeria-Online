@@ -6,7 +6,7 @@ import {  ProductoComponent } from '../../components/producto/producto.component
 import { GraphqlService } from '../../services/graphql.service';
 import { Product } from '../../services/graphql.service';
 import { BreadcrumbItem, BreadcrumbsComponent } from "../../components/breadcrumbs/breadcrumbs.component";
-
+import { CartService } from '../../services/cart.service';
 interface ProductoRelacionado {
   id: string;
   nombre: string;
@@ -37,7 +37,8 @@ export class ProductComponent implements OnInit {
   
   constructor(
     private route: ActivatedRoute,
-    private dbService: GraphqlService
+    private dbService: GraphqlService,
+    private cartService : CartService
   ) {}
 
   ngOnInit(): void {
@@ -113,7 +114,9 @@ cargarProducto(): void {
     if (this.producto) {
       // Lógica para añadir al carrito - puedes implementar un servicio de carrito
       console.log('Añadiendo al carrito:', this.producto);
-      
+      this.cartService.addProduct(Number(this.producto.id), this.producto).subscribe((result) => {
+        console.log('Producto agregado al carrito:', result);
+      })
       
     }
   }

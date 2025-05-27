@@ -3,7 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { RouterLink } from '@angular/router';
 import { DropdownMenuComponent } from './components/dropdown-menu/dropdown-menu.component';
 import clienteEntorno from './clientVariables.environment';
-import { Cart, GraphqlService } from './services/graphql.service';
+import { CartService } from './services/cart.service';
 import { inject } from '@angular/core';
 
 @Component({
@@ -15,7 +15,7 @@ import { inject } from '@angular/core';
 export class AppComponent implements OnInit {
   title = 'frontend';
   private environment = clienteEntorno;
-  private db = inject(GraphqlService);
+  private cartService = inject(CartService);
 
   isUserLoggedIn(): boolean {
     return this.environment.getIsLoggedIn();
@@ -34,25 +34,20 @@ export class AppComponent implements OnInit {
 
   private loadUserData(): void {
     // Obtener partner ID
-    this.db.getPartnerId().subscribe({
-      next: (partnerId) => {
-       this.environment.setPartnerId(partnerId.data.getPartnerId);
-       // Obtener el carrito del usuario
-       this.db.getCart().subscribe({
-         next: (cart) => {
-          console.log(cart)
-           this.environment.setCart(cart);
-         },
-         error: (error) => {
-           console.error('Error obteniendo carrito:', error);
-         }
-       })
-      },
-      error: (error) => {
-        console.error('Error obteniendo Partner ID:', error);
-      }
-    });
-
-   
+     setTimeout(() => {
+        console.log('📡 [App Component] Cargando carrito inicial...');
+        this.cartService.loadCart().subscribe({
+          next: (cart) => {
+            if (cart) {
+              console.log('✅ [App Component] Carrito cargado:', cart.lines.length, 'productos');
+            } else {
+              console.log('ℹ️ [App Component] Usuario no tiene carrito activo');
+            }
+          },
+          error: (error) => {
+            console.error('❌ [App Component] Error cargando carrito:', error);
+          }
+        });
+      }, 500);
+    }
   }
-}

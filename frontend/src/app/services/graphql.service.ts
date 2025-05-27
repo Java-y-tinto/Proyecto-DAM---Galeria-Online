@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Apollo,gql } from 'apollo-angular';
+import { Apollo, gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
-import { ApolloClient,ApolloQueryResult,InMemoryCache } from '@apollo/client/core';
+import { ApolloClient, ApolloQueryResult, InMemoryCache } from '@apollo/client/core';
 
 // --- Interfaz para el Producto ---
 // Define una interfaz que coincida con los campos que pides en tu query
@@ -42,11 +42,11 @@ export interface internalUser {
   JWT: string;
 }
 export interface loginResponse {
-    login: {
-      token: string;
-      _typename: string;
-    }
+  login: {
+    token: string;
+    _typename: string;
   }
+}
 
 export type AuthPayload = {
   token: string
@@ -78,7 +78,7 @@ export type CartLine = {
   product: Product
 
 }
-export type Cart  = {
+export type Cart = {
   order: CartOrder
   lines: [CartLine]
 }
@@ -172,7 +172,7 @@ const LOGIN_USER_MUTATION = gql`
 
 `;
 
-const ADD_TO_CART_MUTATION = gql `
+const ADD_TO_CART_MUTATION = gql`
 mutation addToCart($productId: Int!) {
   addToCart(productId: $productId) {
     success
@@ -184,7 +184,44 @@ mutation addToCart($productId: Int!) {
   }
 }
 `
+const REMOVE_FROM_CART_MUTATION = gql`
+  mutation RemoveFromCart($lineId: Int!) {
+    removeFromCart(lineId: $lineId) {
+      success
+      message
+      order_id
+      line_id
+      order_name
+      access_url
+    }
+  }
+`;
 
+const CLEAR_CART_MUTATION = gql`
+  mutation ClearCart {
+    clearCart {
+      success
+      message
+      order_id
+      line_id
+      order_name
+      access_url
+    }
+  }
+`;
+
+const CHECKOUT_CART_MUTATION = gql`
+  mutation CheckoutCart {
+    checkoutCart {
+      success
+      message
+      order_id
+      line_id
+      order_name
+      access_url
+    }
+  }
+`;
 
 @Injectable({
   providedIn: 'root'
@@ -199,7 +236,7 @@ export class GraphqlService {
         variables: { categoryName },
       })
       .pipe(
-        map((result) =>  result.data.productsByCategory)
+        map((result) => result.data.productsByCategory)
       );
   }
 
@@ -233,7 +270,7 @@ export class GraphqlService {
   }
   getCart(): Observable<Cart | null> {
     console.log('🚀 [GraphQL Service] Iniciando query getCart...');
-    
+
     return this.apollo
       .query<{ getCart: Cart | null }>({
         query: GET_USER_CART,
@@ -254,7 +291,7 @@ export class GraphqlService {
         })
       );
   }
-   getPartnerId(): Observable<ApolloQueryResult<{ getPartnerId: number; }>> {
+  getPartnerId(): Observable<ApolloQueryResult<{ getPartnerId: number; }>> {
     return this.apollo
       .query<{ getPartnerId: number }>({
         query: GET_PARTNER_ID,
@@ -264,4 +301,79 @@ export class GraphqlService {
         map((result) => result)
       );
   }
+
+  removeFromCart(lineId: number): Observable<CartOperationResult> {
+    console.log('🚀 [GraphQL Service] Removiendo producto del carrito, lineId:', lineId);
+
+    return this.apollo
+      .mutate<{ removeFromCart: CartOperationResult }>({
+        mutation: REMOVE_FROM_CART_MUTATION,
+        variables: { lineId },
+      })
+      .pipe(
+        tap(result => {
+          console.log('📥 [GraphQL Service] Respuesta removeFromCart:', result);
+        }),
+        map((result) => {
+          if (result.errors) {
+            return {
+              success: false, // Provide a default value for success
+              message: 'Error al remover producto del carrito',
+            } as unknown as CartOperationResult; // Cast to CartOperationResult
+          }
+          return result.data!.removeFromCart;
+        })
+      );
+  }
+
+  // NUEVA: Vaciar carrito completo
+  clearCart(): Observable<CartOperationResult> {
+    console.log('🚀 [GraphQL Service] Vaciando carrito...');
+
+    return this.apollo
+      .mutate<{ clearCart: CartOperationResult }>({
+        mutation: CLEAR_CART_MUTATION,
+      })
+      .pipe(
+        tap(result => {
+          console.log('📥 [GraphQL Service] Respuesta clearCart:', result);
+        }),
+        map((result) => {
+          if (result.errors) {
+            console.error('❌ [GraphQL Service] Errores en clearCart:', result.errors);
+            return {
+              success: false,
+              message: 'Error al vaciar el carrito'
+            } as unknown as CartOperationResult;
+          }
+          return result.data!.clearCart;
+        })
+      );
+  }
+
+  // NUEVA: Proceder al checkout
+  checkoutCart(): Observable<CartOperationResult> {
+    console.log('🚀 [GraphQL Service] Iniciando checkout...');
+
+    return this.apollo
+      .mutate<{ checkoutCart: CartOperationResult }>({
+        mutation: CHECKOUT_CART_MUTATION,
+      })
+      .pipe(
+        tap(result => {
+          console.log('📥 [GraphQL Service] Respuesta checkoutCart:', result);
+        }),
+        map((result) => {
+          if (result.errors) {
+            console.error('❌ [GraphQL Service] Errores en checkoutCart:', result.errors);
+            return {
+              success: false,
+              message: 'Error al procesar el pedido'
+            } as unknown as CartOperationResult;
+          }
+          return result.data!.checkoutCart;
+        })
+      );
+  }
+
 }
