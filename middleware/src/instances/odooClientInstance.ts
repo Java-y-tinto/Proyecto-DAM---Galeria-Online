@@ -245,7 +245,7 @@ export const getUserCart = async (uid: number) => {
   };
 }
 
-const getOdooPartnerId = async (uid: number) => {
+export const getOdooPartnerId = async (uid: number) => {
     const user = await odooClient.searchRead(
         'res.users',
         [['id', '=', uid]],

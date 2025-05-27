@@ -1,5 +1,5 @@
 import { register } from 'module';
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart,checkoutCart } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart,checkoutCart, getOdooPartnerId } from '../../instances/odooClientInstance.js';
 import { authenticateUser, generateToken, registerUser } from '../../services/auth.js';
 
 export const resolvers = {
@@ -32,7 +32,12 @@ export const resolvers = {
         return null;
       }
     },
-
+  getPartnerId: async (_: any, __: any, context: any) => {
+      if (!context.user) {
+        throw new Error('No autorizado'); // Lanza error en lugar de devolver objeto
+      }
+      return await getOdooPartnerId(context.user.uid);
+    },
   getCart: async (_: any, __: any, context: any) => {
   if (!context.user) {
     // Aquí podrías lanzar un error GraphQL o devolver null
@@ -123,5 +128,6 @@ export const resolvers = {
       if (!context.user) return { success: false, message: "No autorizado"}
       return await checkoutCart(context.user.uid);
     },
+   
   },
 };

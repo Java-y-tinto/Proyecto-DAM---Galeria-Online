@@ -1,4 +1,4 @@
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, checkoutCart } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, checkoutCart, getOdooPartnerId } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
 export const resolvers = {
     Query: {
@@ -27,6 +27,12 @@ export const resolvers = {
                 console.error(`Resolver: Error al buscar producto:`, error);
                 return null;
             }
+        },
+        getPartnerId: async (_, __, context) => {
+            if (!context.user) {
+                throw new Error('No autorizado'); // Lanza error en lugar de devolver objeto
+            }
+            return await getOdooPartnerId(context.user.uid);
         },
         getCart: async (_, __, context) => {
             if (!context.user) {

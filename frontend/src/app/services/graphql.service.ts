@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Apollo,gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApolloClient,InMemoryCache } from '@apollo/client/core';
+import { ApolloClient,ApolloQueryResult,InMemoryCache } from '@apollo/client/core';
 
 // --- Interfaz para el Producto ---
 // Define una interfaz que coincida con los campos que pides en tu query
@@ -55,6 +55,33 @@ export type AuthPayload = {
 
 }
 
+export type CartOperationResult = {
+  success: Boolean
+  message: String
+  order_id: Number
+  line_id: Number
+  order_name: String
+  access_url: String
+}
+
+export type CartOrder = {
+  id: Number
+  name: String
+  amount_total: Number
+  amount_tax: Number
+  amount_untaxed: Number
+  access_url: String
+}
+
+export type CartLine = {
+  id: Number
+  product: Product
+
+}
+export type Cart  = {
+  order: CartOrder
+  lines: [CartLine]
+}
 // --- Define la Query GraphQL ---
 // Escribe la query tal como la probarías en Apollo Sandbox o similar.
 // Usa variables GraphQL ($categoryName) para pasar datos dinámicos.
@@ -91,6 +118,35 @@ const GET_PRODUCT_BY_ID = gql`
   }
 `;
 
+const GET_USER_CART = gql`
+  query getUserCart($userId: String!) {
+    getUserCart(userId: $userId) {
+      order {
+        id
+        name
+        amount_total
+        amount_tax
+        amount_untaxed
+        access_url
+      }
+      lines {
+        id
+        product_id
+        product_uom_qty
+        price_unit
+        price_subtotal
+        display_name
+      }
+    }
+  }
+`
+
+const GET_PARTNER_ID = gql`
+query getPartnerId {
+  getPartnerId
+}
+`
+
 const REGISTER_USER_MUTATION = gql`
   mutation registerUser($name: String!, $email: String!, $passwd: String!) {
     registerUser(name: $name, email: $email, passwd: $passwd) {
@@ -109,6 +165,20 @@ const LOGIN_USER_MUTATION = gql`
 }
 
 `;
+
+const ADD_TO_CART_MUTATION = gql `
+mutation addToCart($productId: Int!) {
+  addToCart(productId: $productId) {
+    success
+    message
+    order_id
+    line_id
+    order_name
+    access_url
+  }
+}
+`
+
 
 @Injectable({
   providedIn: 'root'
@@ -148,5 +218,31 @@ export class GraphqlService {
       mutation: LOGIN_USER_MUTATION,
       variables: { email, password },
     });
+  }
+  addToCart(productId: number) {
+    return this.apollo.mutate({
+      mutation: ADD_TO_CART_MUTATION,
+      variables: { productId },
+    });
+  }
+  getUserCart(userId: string ) {
+    return this.apollo
+      .query<{ getUserCart: Cart }>({
+        query: GET_USER_CART,
+        variables: { userId },
+      })
+      .pipe(
+        map((result) => result.data.getUserCart)
+      );
+  }
+   getPartnerId(): Observable<ApolloQueryResult<{ getPartnerId: number; }>> {
+    return this.apollo
+      .query<{ getPartnerId: number }>({
+        query: GET_PARTNER_ID,
+        fetchPolicy: 'network-only'
+      })
+      .pipe(
+        map((result) => result)
+      );
   }
 }

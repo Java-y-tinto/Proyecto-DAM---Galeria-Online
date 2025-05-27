@@ -70,6 +70,7 @@ type Query {
   productsByCategory(categoryName: String!): [Product!]!
   productById(id: String!): Product
   getCart(uid: Int!): Cart
+  getPartnerId: Int!
 }
 
 type Mutation {

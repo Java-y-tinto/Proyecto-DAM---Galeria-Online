@@ -143,7 +143,7 @@ export const getUserCart = async (uid) => {
         lines,
     };
 };
-const getOdooPartnerId = async (uid) => {
+export const getOdooPartnerId = async (uid) => {
     const user = await odooClient.searchRead('res.users', [['id', '=', uid]], ['partner_id']);
     if (user.length > 0) {
         return user[0].partner_id[0];
