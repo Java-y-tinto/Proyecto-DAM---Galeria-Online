@@ -69,7 +69,7 @@ type Query {
   products: [Product!]!
   productsByCategory(categoryName: String!): [Product!]!
   productById(id: String!): Product
-  getCart(uid: Int!): Cart
+  getCart: Cart
   getPartnerId: Int!
 }
 

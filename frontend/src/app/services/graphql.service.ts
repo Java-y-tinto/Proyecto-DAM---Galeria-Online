@@ -119,8 +119,8 @@ const GET_PRODUCT_BY_ID = gql`
 `;
 
 const GET_USER_CART = gql`
-  query getUserCart($userId: String!) {
-    getUserCart(userId: $userId) {
+  query getCart($userId: String!) {
+    getCart(userId: $userId) {
       order {
         id
         name

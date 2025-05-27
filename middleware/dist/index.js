@@ -20,6 +20,23 @@ const startServer = async () => {
     const server = new ApolloServer({
         typeDefs,
         resolvers,
+        plugins: [
+            {
+                requestDidStart: async (requestContext) => {
+                    return {
+                        didResolveOperation: async (requestContext) => {
+                            console.log(' [Apollo] Query recibida:', requestContext.request.query);
+                            console.log(' [Apollo] Variables:', requestContext.request.variables);
+                            return Promise.resolve();
+                        },
+                        didEncounterErrors: async (requestContext) => {
+                            console.error(' [Apollo] Errores en resolver:', requestContext.errors);
+                            return Promise.resolve();
+                        }
+                    };
+                }
+            }
+        ]
     });
     console.log('🎯 Iniciando Apollo Server...');
     await server.start();
