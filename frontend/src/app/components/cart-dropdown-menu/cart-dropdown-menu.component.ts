@@ -1,18 +1,18 @@
-import { Component, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { NgClass, AsyncPipe, CurrencyPipe } from '@angular/common';
 import { CartService } from '../../services/cart.service';
-
 @Component({
   selector: 'app-cart-dropdown-menu',
   imports: [NgClass, RouterLink, AsyncPipe, CurrencyPipe],
   templateUrl: './cart-dropdown-menu.component.html',
-  styleUrl: './cart-dropdown-menu.component.scss'
+  styleUrl: './cart-dropdown-menu.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CartDropdownMenuComponent implements OnDestroy {
   private router = inject(Router);
   protected cartService = inject(CartService);
-  
+  public tax: number | undefined = undefined;
   isDropdownVisible = false;
   private hideDropdownTimeout: any = null;
 
@@ -28,6 +28,7 @@ export class CartDropdownMenuComponent implements OnDestroy {
       clearTimeout(this.hideDropdownTimeout);
       this.hideDropdownTimeout = null;
     }
+    this.cartService.cart$.subscribe((cart) => {this.tax =  cart.cart?.order.amount_tax}).unsubscribe(); 
     this.isDropdownVisible = true;
   }
 
@@ -44,7 +45,7 @@ export class CartDropdownMenuComponent implements OnDestroy {
 
   goToCart(): void {
     this.isDropdownVisible = false;
-    this.router.navigate(['/carrito']);
+    this.router.navigate(['/cart']);
   }
 
   removeFromCart(lineId: number): void {
@@ -66,5 +67,8 @@ export class CartDropdownMenuComponent implements OnDestroy {
     if (this.hideDropdownTimeout) {
       clearTimeout(this.hideDropdownTimeout);
     }
+  }
+  goToCheckout(): void{
+
   }
 }

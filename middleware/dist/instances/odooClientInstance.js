@@ -39,7 +39,9 @@ export const connectOdoo = async () => {
 };
 export const getProducts = async () => {
     try {
-        const productsData = await odooClient.searchRead('product.product', [], ['id', 'name', 'description_sale', 'list_price', 'image_1920']);
+        // Obtener todos los productos vendidos para que se marquen como vendidos
+        getSoldProducts();
+        const productsData = await odooClient.searchRead('product.product', [], ['id', 'name', 'description_sale', 'list_price', 'image_1920', 'x_sold']);
         return productsData;
     }
     catch (error) {
@@ -49,7 +51,7 @@ export const getProducts = async () => {
 export const getProductById = async (id) => {
     try {
         // Obtener el producto básico
-        const products = await odooClient.searchRead('product.product', [['id', '=', id]], ['id', 'name', 'description_sale', 'list_price', 'image_1920', 'image_512', 'product_tmpl_id']);
+        const products = await odooClient.searchRead('product.product', [['id', '=', id]], ['id', 'name', 'x_sold', 'description_sale', 'list_price', 'image_1920', 'image_512', 'product_tmpl_id']);
         if (!products || products.length === 0) {
             return null;
         }
@@ -250,36 +252,55 @@ export const clearCart = async (uid) => {
         return { success: false, message: 'Error al vaciar el carrito' };
     }
 };
-export const checkoutCart = async (uid) => {
+export const getSoldProducts = async () => {
     try {
-        const partner_id = await getOdooPartnerId(uid);
-        if (!partner_id)
-            return { success: false, message: 'Usuario no encontrado' };
-        // Buscar carrito en borrador
-        const orders = await odooClient.searchRead('sale.order', [['state', '=', 'draft'], ['partner_id', '=', partner_id]], ['id', 'name', 'access_url']);
-        if (orders.length === 0) {
-            return { success: false, message: 'No hay ningún carrito activo' };
+        console.log('🔍 Consultando productos vendidos...');
+        // Buscar líneas de órdenes de venta confirmadas (state = 'sale' o 'done')
+        const soldOrderLines = await odooClient.searchRead('sale.order.line', [
+            ['order_id.state', 'in', ['sale', 'done']] // Órdenes confirmadas o entregadas
+        ], ['product_id']);
+        // Extraer IDs únicos de productos vendidos
+        const soldProductIds = [...new Set(soldOrderLines
+                .map(line => line.product_id[0]) // product_id viene como [id, name]
+                .filter(id => id) // Filtrar nulls/undefined
+            )];
+        console.log(`✅ Encontrados ${soldProductIds.length} productos vendidos:`, soldProductIds);
+        for (const productId of soldProductIds) {
+            console.log(`- ${productId}`);
+            markProductAsSold(productId);
         }
-        const order = orders[0];
-        // Confirmar el pedido (transición del workflow de venta)
-        await odooClient.call('sale.order', 'action_confirm', [[order.id]]);
-        // Obtener de nuevo la URL por si cambia (no suele cambiar, pero por seguridad)
-        const [confirmedOrder] = await odooClient.searchRead('sale.order', [['id', '=', order.id]], ['access_url', 'name']);
-        return {
-            success: true,
-            message: 'Pedido confirmado correctamente',
-            order_id: order.id,
-            order_name: confirmedOrder.name,
-            // Devuelve la URL para redirigir al portal (checkout)
-            // ejemplo: /my/orders/43?access_token=xyz
-            // el frontend debe anteponer la URL base de Odoo si es externa
-            line_id: undefined,
-            ...confirmedOrder.access_url && { access_url: confirmedOrder.access_url },
-        };
+        return soldProductIds;
     }
     catch (error) {
-        console.error('[checkoutCart] Error al confirmar pedido:', error);
-        return { success: false, message: 'Error al confirmar el pedido' };
+        console.error('❌ Error consultando productos vendidos:', error);
+        return [];
+    }
+};
+export const isProductSold = async (productId) => {
+    try {
+        const soldOrderLines = await odooClient.searchRead('sale.order.line', [
+            ['product_id', '=', productId],
+            ['order_id.state', 'in', ['sale', 'done']]
+        ], ['id']);
+        const isSold = soldOrderLines.length > 0;
+        console.log(`🔍 Producto ${productId} ${isSold ? 'ESTÁ' : 'NO está'} vendido`);
+        return isSold;
+    }
+    catch (error) {
+        console.error(`❌ Error verificando si producto ${productId} está vendido:`, error);
+        return false;
+    }
+};
+const markProductAsSold = async (productId) => {
+    try {
+        console.log(`🔍 Marcando producto ${productId} como vendido...`);
+        await odooClient.update('product.product', productId, { x_sold: true });
+        await odooClient.update('product.product', productId, { sale_ok: false });
+        await odooClient.update('product.template', productId, { sale_ok: false });
+        console.log(`✅ Producto ${productId} marcado como vendido`);
+    }
+    catch (error) {
+        console.error(`❌ Error marcando producto ${productId} como vendido:`, error);
     }
 };
 export { odooClient };

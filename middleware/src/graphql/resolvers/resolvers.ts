@@ -1,11 +1,12 @@
 import { register } from 'module';
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart,checkoutCart, getOdooPartnerId } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart, getOdooPartnerId, getSoldProducts } from '../../instances/odooClientInstance.js';
 import { authenticateUser, generateToken, registerUser } from '../../services/auth.js';
 
 export const resolvers = {
   Query: {
     products: async (_: any, __: any, context: any) => {
       //if (!context.user) throw new Error('No autorizado');
+            console.log('[Resolver products]: Productos vendidos: ', getSoldProducts());
       return await getProducts();
     },
     productsByCategory: async (_: any, { categoryName }: any, context: any) => {
@@ -15,6 +16,8 @@ export const resolvers = {
 
     productById: async (_: any, { id }: { id: string }, context: any) => {
       try {
+                    console.log('[Resolver products]: Productos vendidos: ', getSoldProducts());
+
         console.log(`Resolver: Buscando producto con ID: ${id}`);
         const products = await getProductById(id);
         console.log(`Resolver: Productos encontrados:`, products);
@@ -124,10 +127,7 @@ export const resolvers = {
       if (!context.user) return { success: false, message: "No autorizado"}
       return await clearCart(context.user.uid);
     },
-    checkoutCart: async (_: any, __: any, context: any) => {
-      if (!context.user) return { success: false, message: "No autorizado"}
-      return await checkoutCart(context.user.uid);
-    },
+   
    
   },
 };

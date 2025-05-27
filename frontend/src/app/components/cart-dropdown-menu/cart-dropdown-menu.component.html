@@ -9,9 +9,10 @@
       class="flex-shrink-0"
     />
     <!-- Contador de productos -->
-    @if ((cartItemCount$ | async)! > 0) {
+     @let cartCount = (cartItemCount$ | async); 
+    @if (cartCount! > 0) {
       <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px]">
-        {{ cartItemCount$ | async }}
+        {{ cartCount }}
       </span>
     }
   </div>
@@ -98,6 +99,10 @@
       <div class="px-4 py-3 border-t border-gray-200 bg-gray-50">
         <!-- Total -->
         <div class="flex justify-between items-center mb-3">
+        <span class="text-sm font-medium text-gray-900">Impuestos:</span>
+        <span class="text-lg font-light text-gray-700">
+            {{ tax | currency:'EUR':'symbol':'1.2-2' }}
+            </span> 
           <span class="text-sm font-medium text-gray-900">Total:</span>
           <span class="text-lg font-bold text-gray-900">
             {{ cartTotal$ | async | currency:'EUR':'symbol':'1.2-2' }}
@@ -113,7 +118,7 @@
             Ver Carrito
           </button>
           <button
-            routerLink="/checkout"
+            (click)="goToCheckout()"
             (click)="isDropdownVisible = false"
             class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-3 rounded-md transition-colors duration-150"
           >

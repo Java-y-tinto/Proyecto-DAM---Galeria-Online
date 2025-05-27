@@ -81,12 +81,24 @@ export const connectOdoo = async () => {
 
 export const getProducts = async () => {
     try {
+        // Obtener todos los productos
         const productsData = await odooClient.searchRead(
             'product.product',
             [],
             ['id', 'name', 'description_sale', 'list_price', 'image_1920'],
         );
-        return productsData;
+        
+        // Obtener IDs de productos vendidos
+        const soldProductIds = await getSoldProducts();
+        
+        // Filtrar productos vendidos
+        const availableProducts = productsData.filter(product => 
+            !soldProductIds.includes(product.id)
+        );
+        
+        console.log(`📦 Total productos: ${productsData.length}, Disponibles: ${availableProducts.length}, Vendidos: ${soldProductIds.length}`);
+        
+        return availableProducts;
     } catch (error) {
         console.log(error);
     }
@@ -94,51 +106,59 @@ export const getProducts = async () => {
 
 export const getProductById = async (id: string) => {
     try {
-        // Obtener el producto básico
+        console.log(`Resolver: Buscando producto con ID: ${id}`);
+        
+        // Primero verificar si el producto está vendido
+        const productIdNumber = parseInt(id);
+        const isSold = await isProductSold(productIdNumber);
+        
+        if (isSold) {
+            console.log(`❌ Producto ${id} está vendido - no disponible`);
+            return null; // Producto vendido, no mostrar
+        }
+        
+        // Si no está vendido, obtener la información completa
         const products = await odooClient.searchRead(
             'product.product',
             [['id', '=', id]],
             ['id', 'name', 'description_sale', 'list_price', 'image_1920', 'image_512', 'product_tmpl_id']
         );
-
+        
         if (!products || products.length === 0) {
+            console.log(`❌ Producto ${id} no encontrado`);
             return null;
         }
-
+        
         const product = products[0];
-
-        // Obtener los atributos del producto
+        console.log(`✅ Producto ${id} disponible:`, product.name);
+        
+        // Obtener los atributos del producto (código existente)
         if (product.product_tmpl_id) {
-            const templateId = product.product_tmpl_id[0]; // Odoo devuelve [id, name]
-
-            // Obtener líneas de atributos de la plantilla
+            const templateId = product.product_tmpl_id[0];
+            
             const attributeLines = await odooClient.searchRead(
                 'product.template.attribute.line',
                 [['product_tmpl_id', '=', templateId]],
                 ['attribute_id', 'value_ids']
             );
-
-            // Obtener información de atributos y valores
+            
             let attributes = [];
             for (const line of attributeLines) {
                 const attributeId = line.attribute_id[0];
-
-                // Obtener detalles del atributo
+                
                 const attributeDetails = await odooClient.searchRead(
                     'product.attribute',
                     [['id', '=', attributeId]],
                     ['name', 'display_type']
                 );
-
-                // Obtener valores del atributo
+                
                 const valueIds = line.value_ids;
                 const attributeValues = await odooClient.searchRead(
                     'product.attribute.value',
                     [['id', 'in', valueIds]],
                     ['name', 'html_color']
                 );
-
-                // Añadir a la lista de atributos
+                
                 attributes.push({
                     id: attributeId,
                     name: attributeDetails[0].name,
@@ -150,45 +170,60 @@ export const getProductById = async (id: string) => {
                     }))
                 });
             }
-
-            // Añadir atributos al producto
+            
             product.attributes = attributes;
-
-            // Obtener los valores específicos de esta variante
+            
             const variantAttributeValues = await odooClient.searchRead(
                 'product.template.attribute.value',
                 [['product_tmpl_id', '=', templateId]],
                 ['product_attribute_value_id', 'price_extra']
             );
-
+            
             product.variant_attributes = variantAttributeValues;
         }
-
+        
         return [product];
     } catch (error) {
         console.error("Error en getProductById:", error);
         throw error;
     }
 }
+
 export const getProductsByCategory = async (categoryName: string) => {
-    const category = await odooClient.searchRead(
-        'product.category',
-        [['name', '=', categoryName]],
-        ['id']
-    );
+    try {
+        const category = await odooClient.searchRead(
+            'product.category',
+            [['name', '=', categoryName]],
+            ['id']
+        );
 
-    if (category.length === 0) return [];
+        if (category.length === 0) return [];
 
-    const categoryId = category[0].id;
-    console.log(categoryId);
-    /*
-    
-    */
-    return odooClient.searchRead(
-        'product.product',
-        [['categ_id', '=', categoryId]],
-        ['name', 'list_price', 'categ_id', 'image_1920', 'image_512']
-    );
+        const categoryId = category[0].id;
+        
+        // Obtener todos los productos de la categoría
+        const products = await odooClient.searchRead(
+            'product.product',
+            [['categ_id', '=', categoryId]],
+            ['name', 'list_price', 'categ_id', 'image_1920', 'image_512']
+        );
+        
+        // Obtener IDs de productos vendidos
+        const soldProductIds = await getSoldProducts();
+        
+        // Filtrar productos vendidos
+        const availableProducts = products.filter(product => 
+            !soldProductIds.includes(product.id)
+        );
+        
+        console.log(`📂 Categoría "${categoryName}": ${products.length} total, ${availableProducts.length} disponibles`);
+        
+        return availableProducts;
+        
+    } catch (error) {
+        console.error("Error en getProductsByCategory:", error);
+        return [];
+    }
 };
 
 export const createUserClient = async (username: string, password: string) => {
@@ -399,50 +434,57 @@ export const clearCart = async (uid: number): Promise<CartOperationResult> => {
 }
 
 
-export const checkoutCart = async (uid: number): Promise<CartOperationResult> => {
-    try {
-        const partner_id = await getOdooPartnerId(uid);
-        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
-
-        // Buscar carrito en borrador
-        const orders = await odooClient.searchRead(
-            'sale.order',
-            [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
-            ['id', 'name', 'access_url']
+export const getSoldProducts = async (): Promise<number[]> => {
+     try {
+        console.log('🔍 Consultando productos vendidos...');
+        
+        // Buscar líneas de órdenes de venta confirmadas (state = 'sale' o 'done')
+        const soldOrderLines = await odooClient.searchRead(
+            'sale.order.line',
+            [
+                ['order_id.state', 'in', ['sale', 'done']] // Órdenes confirmadas o entregadas
+            ],
+            ['product_id']
         );
-
-        if (orders.length === 0) {
-            return { success: false, message: 'No hay ningún carrito activo' };
+        
+        // Extraer IDs únicos de productos vendidos
+        const soldProductIds = [...new Set(
+            soldOrderLines
+                .map(line => line.product_id[0]) // product_id viene como [id, name]
+                .filter(id => id) // Filtrar nulls/undefined
+        )];
+        
+        console.log(`✅ Encontrados ${soldProductIds.length} productos vendidos:`, soldProductIds);
+        for (const productId of soldProductIds) {
+            console.log(`- ${productId}`);
         }
-
-        const order = orders[0];
-
-        // Confirmar el pedido (transición del workflow de venta)
-        await odooClient.call('sale.order', 'action_confirm', [[order.id]]);
-
-        // Obtener de nuevo la URL por si cambia (no suele cambiar, pero por seguridad)
-        const [confirmedOrder] = await odooClient.searchRead(
-            'sale.order',
-            [['id', '=', order.id]],
-            ['access_url', 'name']
-        );
-
-        return {
-            success: true,
-            message: 'Pedido confirmado correctamente',
-            order_id: order.id,
-            order_name: confirmedOrder.name,
-            // Devuelve la URL para redirigir al portal (checkout)
-            // ejemplo: /my/orders/43?access_token=xyz
-            // el frontend debe anteponer la URL base de Odoo si es externa
-            line_id: undefined,
-            ...confirmedOrder.access_url && { access_url: confirmedOrder.access_url },
-        };
+        return soldProductIds as number[];
+        
     } catch (error) {
-        console.error('[checkoutCart] Error al confirmar pedido:', error);
-        return { success: false, message: 'Error al confirmar el pedido' };
+        console.error('❌ Error consultando productos vendidos:', error);
+        return [];
     }
-};
+}
 
+export const isProductSold = async (productId: number): Promise<boolean> => {
+     try {
+        const soldOrderLines = await odooClient.searchRead(
+            'sale.order.line',
+            [
+                ['product_id', '=', productId],
+                ['order_id.state', 'in', ['sale', 'done']]
+            ],
+            ['id']
+        );
+        
+        const isSold = soldOrderLines.length > 0;
+        console.log(`🔍 Producto ${productId} ${isSold ? 'ESTÁ' : 'NO está'} vendido`);
+        return isSold;
+        
+    } catch (error) {
+        console.error(`❌ Error verificando si producto ${productId} está vendido:`, error);
+        return false;
+    }
+}
 
 export { odooClient };

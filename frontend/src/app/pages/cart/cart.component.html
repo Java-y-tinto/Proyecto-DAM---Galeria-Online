@@ -1,1 +1,166 @@
-<p>cart works!</p>
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Tu Carrito</h1>
+    <nav class="text-sm text-gray-500">
+      <a routerLink="/" class="hover:text-gray-700">Inicio</a>
+      <span class="mx-2">›</span>
+      <span class="text-gray-900">Carrito</span>
+    </nav>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading$ | async) {
+    <div class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <span class="ml-3 text-lg text-gray-600">Cargando carrito...</span>
+    </div>
+  }
+
+  <!-- Error State -->
+  @else if (error$ | async; ) {
+    <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+      <div class="flex">
+        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">Error</h3>
+          <p class="text-sm text-red-700 mt-1">{{ error$ }}</p>
+          <button 
+            (click)="clearError()" 
+            class="text-sm text-red-600 hover:text-red-500 underline mt-2">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Empty Cart -->
+  @else if ((cartItemCount$ | async) === 0) {
+    <div class="text-center py-12">
+      <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h15M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z" />
+      </svg>
+      <h2 class="text-2xl font-semibold text-gray-900 mt-4">Tu carrito está vacío</h2>
+      <p class="text-gray-600 mt-2">Explora nuestra galería y encuentra cuadros únicos</p>
+      <a 
+        routerLink="/" 
+        class="mt-6 inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
+        </svg>
+        Seguir Comprando
+      </a>
+    </div>
+  }
+
+  <!-- Cart Items -->
+  @else {
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+      <!-- Cart Items List -->
+      <div class="divide-y divide-gray-200">
+        @for (item of cartItems$ | async; track item.id) {
+          <div class="p-6 flex items-center space-x-4 hover:bg-gray-50 transition-colors duration-150">
+            <!-- Product Image -->
+            <div class="flex-shrink-0">
+              @if (item.product.image_512) {
+                <img 
+                  [src]="'data:image/jpeg;base64,' + item.product.image_512" 
+                  [alt]="item.product.name"
+                  class="h-24 w-24 object-cover rounded-lg border border-gray-200"
+                />
+              } @else {
+                <div class="h-24 w-24 bg-gray-200 rounded-lg flex items-center justify-center border border-gray-200">
+                  <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              }
+            </div>
+
+            <!-- Product Info -->
+            <div class="flex-1 min-w-0">
+              <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                {{ item.product.name  }}
+              </h3>
+            </div>
+
+            <!-- Price -->
+            <div class="flex-shrink-0 text-right">
+              <div class="text-xl font-bold text-gray-900">
+                {{ item.product.list_price| currency:'EUR':'symbol':'1.2-2' }}
+              </div>
+        
+            </div>
+
+            <!-- Remove Button -->
+            <div class="flex-shrink-0">
+              <button
+                (click)="removeProduct(item)"
+                class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-150"
+                title="Eliminar del carrito"
+              >
+                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Cart Summary -->
+      <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <button
+              (click)="clearCart()"
+              class="text-sm text-red-600 hover:text-red-700 font-medium underline transition-colors duration-150"
+            >
+              Vaciar carrito
+            </button>
+            <a
+              routerLink="/"
+              class="text-sm text-gray-600 hover:text-gray-700 font-medium underline transition-colors duration-150"
+            >
+              Seguir comprando
+            </a>
+          </div>
+          
+          <div class="text-right">
+            <div class="text-sm text-gray-600 mb-1">
+              Productos: {{ cartItemCount$ | async }}
+            </div>
+            <div class="text-lg text-gray-900 mb-3">
+              <span class="font-medium">Subtotal: </span>
+              <span class="font-bold text-xl">{{ cartTotal$ | async | currency:'EUR':'symbol':'1.2-2' }}</span>
+            </div>
+            
+            <button
+              (click)="proceedToCheckout()"
+              [disabled]="isLoading$ | async"
+              class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 px-8 rounded-lg transition-colors duration-200 flex items-center"
+            >
+              @if (isLoading$ | async) {
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Procesando...
+              } @else {
+               
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                Tramitar pedido
+          
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

@@ -34,6 +34,7 @@ export interface Product {
   name: string;
   list_price: number;
   image_1920: string;
+  x_sold: boolean;
   image_512: string;
   attributes?: ProductAttribute[];
   variant_attributes?: VariantAttributeValue[];
@@ -95,6 +96,7 @@ const GET_PRODUCTS_BY_CATEGORY = gql`
       list_price
       image_1920
       image_512
+      x_sold
       # ejemplo: description
       # ejemplo: image_url
     }
@@ -109,6 +111,7 @@ const GET_PRODUCT_BY_ID = gql`
     list_price
     image_1920
     image_512
+    x_sold
     attributes {
       name
       values {

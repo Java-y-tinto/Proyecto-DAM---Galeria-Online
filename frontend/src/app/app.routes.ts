@@ -4,6 +4,7 @@ import { CatalogComponent } from './pages/catalogo/catalogo.component';
 import { ProductComponent } from './pages/product/product.component';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
+import { CartComponent } from './pages/cart/cart.component';
 
 export const routes: Routes = [
     {path: '', component: HomePageComponent, title: 'Galeria online de Paqui Robles' },
@@ -11,5 +12,6 @@ export const routes: Routes = [
     {path: 'producto/:categoria/:id', component: ProductComponent, title: 'Producto'},
     {path:'login',component: LoginComponent, title: 'Iniciar sesión'},
     {path: 'register', component: RegisterComponent, title: 'Registrarse'},
+    {path: 'cart',component: CartComponent,title: 'Carrito de compras'},
     {path: '**', redirectTo: ''}
 ];
