@@ -1,5 +1,5 @@
 import { register } from 'module';
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart, getOdooPartnerId, getSoldProducts } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory,getUserCart,addToCart,clearCart,removeFromCart, getOdooPartnerId, getSoldProducts, getCacheStats, searchProducts } from '../../instances/odooClientInstance.js';
 import { authenticateUser, generateToken, registerUser } from '../../services/auth.js';
 
 export const resolvers = {
@@ -35,13 +35,29 @@ export const resolvers = {
         return null;
       }
     },
+    searchProducts: async (_: any, { searchTerm }: { searchTerm: string }, context: any) => {
+      try {
+        console.log(`Resolver: Buscando productos con el término de búsqueda: ${searchTerm}`);
+        if (!searchTerm || searchTerm.trim().length === 0) {
+          console.log(`Resolver: No se proporcionó un término de búsqueda`);
+          return [];
+        }
+
+        const products = await searchProducts(searchTerm.trim());
+        console.log(`Resolver: Productos encontrados:`, products);
+        return products;
+      } catch (error) {
+        console.error(`Resolver [BUSQUEDA DE PRODUCTOS]: Error al buscar productos:`, error);
+        return [];  
+      }
+    },
   getPartnerId: async (_: any, __: any, context: any) => {
       if (!context.user) {
         throw new Error('No autorizado'); // Lanza error en lugar de devolver objeto
       }
       return await getOdooPartnerId(context.user.uid);
     },
-  getCart: async (_: any, __: any, context: any) => {
+ /* getCart: async (_: any, __: any, context: any) => {
   if (!context.user) {
     // Aquí podrías lanzar un error GraphQL o devolver null
     throw new Error("No autorizado");
@@ -75,7 +91,11 @@ export const resolvers = {
     lines: linesWithProducts,
   };
 },
-
+*/
+   getCart: async (_: any, __: any, context: any) => {
+      if (!context.user) throw new Error('No autorizado');
+      return await getUserCart(context.user.uid);
+    },
   },
   Mutation: {
     login: async (_: any, { email, password }: any) => {

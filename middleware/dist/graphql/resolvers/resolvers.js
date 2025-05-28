@@ -36,33 +36,45 @@ export const resolvers = {
             }
             return await getOdooPartnerId(context.user.uid);
         },
+        /* getCart: async (_: any, __: any, context: any) => {
+         if (!context.user) {
+           // Aquí podrías lanzar un error GraphQL o devolver null
+           throw new Error("No autorizado");
+         }
+       
+         const cart = await getUserCart(context.user.uid);
+         if (!cart) return null;
+       
+         // En cada línea, obtener el objeto product completo con getProductById
+         const linesWithProducts = await Promise.all(
+           cart.lines.map(async (line) => {
+             // product_id viene como [id, "nombre"], convertimos a string id
+             const productId = line.product_id[0].toString();
+       
+             const productArr = await getProductById(productId);
+             const product = productArr && productArr.length > 0 ? productArr[0] : null;
+       
+             return {
+               id: line.id,
+               product,
+               display_name: line.display_name,
+               product_uom_qty: line.product_uom_qty,
+               price_unit: line.price_unit,
+               price_subtotal: line.price_subtotal,
+             };
+           })
+         );
+       
+         return {
+           order: cart.order,
+           lines: linesWithProducts,
+         };
+       },
+       */
         getCart: async (_, __, context) => {
-            if (!context.user) {
-                // Aquí podrías lanzar un error GraphQL o devolver null
-                throw new Error("No autorizado");
-            }
-            const cart = await getUserCart(context.user.uid);
-            if (!cart)
-                return null;
-            // En cada línea, obtener el objeto product completo con getProductById
-            const linesWithProducts = await Promise.all(cart.lines.map(async (line) => {
-                // product_id viene como [id, "nombre"], convertimos a string id
-                const productId = line.product_id[0].toString();
-                const productArr = await getProductById(productId);
-                const product = productArr && productArr.length > 0 ? productArr[0] : null;
-                return {
-                    id: line.id,
-                    product,
-                    display_name: line.display_name,
-                    product_uom_qty: line.product_uom_qty,
-                    price_unit: line.price_unit,
-                    price_subtotal: line.price_subtotal,
-                };
-            }));
-            return {
-                order: cart.order,
-                lines: linesWithProducts,
-            };
+            if (!context.user)
+                throw new Error('No autorizado');
+            return await getUserCart(context.user.uid);
         },
     },
     Mutation: {

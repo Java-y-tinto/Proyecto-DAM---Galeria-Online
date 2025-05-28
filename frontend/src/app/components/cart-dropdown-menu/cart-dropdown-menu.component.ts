@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgClass, AsyncPipe, CurrencyPipe } from '@angular/common';
 import { CartService } from '../../services/cart.service';
 @Component({
   selector: 'app-cart-dropdown-menu',
-  imports: [NgClass, RouterLink, AsyncPipe, CurrencyPipe],
+  imports: [NgClass, AsyncPipe, CurrencyPipe],
   templateUrl: './cart-dropdown-menu.component.html',
   styleUrl: './cart-dropdown-menu.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -69,6 +69,8 @@ export class CartDropdownMenuComponent implements OnDestroy {
     }
   }
   goToCheckout(): void{
-
+    let url;
+    this.cartService.cart$.subscribe((cart) => {url =  cart.cart?.order.access_url}).unsubscribe();
+      window.location.href = ('http://localhost:8069' + url);
   }
 }

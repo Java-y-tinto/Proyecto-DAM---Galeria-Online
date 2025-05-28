@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { typeDefs } from './graphql/typeDefs/typeDefs.js';
@@ -12,6 +13,12 @@ dotenv.config();
 console.log('🚀 INICIANDO SERVIDOR MIDDLEWARE...');
 console.log('📁 JWT_SECRET definido:', process.env.JWT_SECRET ? 'SÍ' : 'NO');
 console.log('🔌 Puerto:', process.env.PORT || 4000);
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
 const startServer = async () => {
     const app = express();
     const port = process.env.PORT || 4000;
@@ -41,6 +48,7 @@ const startServer = async () => {
     console.log('🎯 Iniciando Apollo Server...');
     await server.start();
     console.log('✅ Apollo Server iniciado correctamente');
+    app.use(limiter);
     app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(server, {
         context: async ({ req }) => {
             console.log('📨 Nueva request recibida en /graphql');

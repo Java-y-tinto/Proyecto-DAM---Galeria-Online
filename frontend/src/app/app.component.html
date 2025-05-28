@@ -7,11 +7,14 @@
     </div>
 
 
+    <!-- Barra de búsqueda actualizada -->
     <div class="w-full max-w-sm md:max-w-md lg:max-w-lg justify-self-center">
-      <input type="text" placeholder="Buscar" class="rounded-lg text-gray-800 bg-white h-8 md:h-9 px-3 w-full
-                      hidden md:block
-                      text-center placeholder:text-center
-                     " />
+      <!-- Búsqueda en desktop -->
+      <div class="hidden md:block">
+        <app-search-bar></app-search-bar>
+      </div>
+      
+      <!-- Botón de búsqueda en mobile -->
       <button class="text-white p-2 md:hidden justify-center flex w-full">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
           class="w-6 h-6">
@@ -20,7 +23,6 @@
         </svg>
       </button>
     </div>
-
 
     <div class="flex items-center justify-self-end">
       <!--TODO: IMPLEMENTAR PAGINA DE PERFIL -->

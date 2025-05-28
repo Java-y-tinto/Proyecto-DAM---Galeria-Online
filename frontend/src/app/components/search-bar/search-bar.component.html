@@ -1,0 +1,52 @@
+ <div class="relative w-full">
+      <!-- Barra de búsqueda -->
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm"
+        (input)="onSearchInput($event)"
+        (focus)="showResults = true"
+        (blur)="hideResults()"
+        placeholder="Buscar cuadros..." 
+        class="rounded-lg text-gray-800 bg-white h-8 md:h-9 px-3 w-full text-center placeholder:text-center"
+      />
+      
+      <!-- Resultados de búsqueda -->
+      @if (showResults && searchResults.length > 0) {
+        <div class="absolute top-full left-0 right-0 bg-white shadow-lg rounded-md mt-1 max-h-80 overflow-y-auto z-50">
+          @for (product of searchResults; track product.id) {
+            <div 
+              class="flex items-center p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+              (mousedown)="selectProduct(product)"
+            >
+              @if (product.image_512) {
+                <img 
+                  [src]="'data:image/jpeg;base64,' + product.image_512" 
+                  [alt]="product.name"
+                  class="w-12 h-12 object-cover rounded mr-3"
+                />
+              } @else {
+                <div class="w-12 h-12 bg-gray-200 rounded mr-3 flex items-center justify-center">
+                  <span class="text-gray-500 text-xs">Sin imagen</span>
+                </div>
+              }
+              <div class="flex-1">
+                <p class="font-medium text-sm text-gray-800">{{ product.name }}</p>
+                <p class="text-gray-600 text-xs">{{ product.list_price | currency:'EUR':'symbol':'1.2-2' }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+      
+      @if (showResults && searchTerm && searchResults.length === 0 && !isLoading) {
+        <div class="absolute top-full left-0 right-0 bg-white shadow-lg rounded-md mt-1 p-4 z-50">
+          <p class="text-gray-500 text-center">No se encontraron cuadros</p>
+        </div>
+      }
+      
+      @if (isLoading) {
+        <div class="absolute top-full left-0 right-0 bg-white shadow-lg rounded-md mt-1 p-4 z-50">
+          <p class="text-gray-500 text-center">Buscando...</p>
+        </div>
+      }
+    </div>
