@@ -287,9 +287,59 @@ export const getProductsByCategory = async (categoryName: string) => {
         const products = await odooClient.searchRead(
             'product.product',
             [['categ_id', '=', categoryId]],
-            ['name', 'list_price', 'categ_id', 'image_1920', 'image_512']
+            ['name','product_tmpl_id', 'list_price', 'categ_id', 'image_1920', 'image_512']
         );
-        
+        // Obtener atributos de los productos
+        for (const product of products) {
+             if (product.product_tmpl_id) {
+            const templateId = product.product_tmpl_id[0];
+            
+            const attributeLines = await odooClient.searchRead(
+                'product.template.attribute.line',
+                [['product_tmpl_id', '=', templateId]],
+                ['attribute_id', 'value_ids']
+            );
+            
+            let attributes = [];
+            for (const line of attributeLines) {
+                const attributeId = line.attribute_id[0];
+                
+                const attributeDetails = await odooClient.searchRead(
+                    'product.attribute',
+                    [['id', '=', attributeId]],
+                    ['name', 'display_type']
+                );
+                
+                const valueIds = line.value_ids;
+                const attributeValues = await odooClient.searchRead(
+                    'product.attribute.value',
+                    [['id', 'in', valueIds]],
+                    ['name', 'html_color']
+                );
+                
+                attributes.push({
+                    id: attributeId,
+                    name: attributeDetails[0].name,
+                    display_type: attributeDetails[0].display_type,
+                    values: attributeValues.map(val => ({
+                        id: val.id,
+                        name: val.name,
+                        html_color: val.html_color || null
+                    }))
+                });
+            }
+            
+            product.attributes = attributes;
+            
+            const variantAttributeValues = await odooClient.searchRead(
+                'product.template.attribute.value',
+                [['product_tmpl_id', '=', templateId]],
+                ['product_attribute_value_id', 'price_extra']
+            );
+            
+            product.variant_attributes = variantAttributeValues;
+        }
+        }
         const soldProductIds = await getSoldProducts();
         const availableProducts = products.filter(product => 
             !soldProductIds.includes(product.id)

@@ -96,7 +96,12 @@ const GET_PRODUCTS_BY_CATEGORY = gql`
       list_price
       image_1920
       image_512
-      
+      attributes {
+        name
+        values {
+          name
+        }
+      }
       # ejemplo: description
       # ejemplo: image_url
     }

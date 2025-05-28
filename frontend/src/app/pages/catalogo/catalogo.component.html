@@ -8,28 +8,36 @@
     <aside class="w-full md:w-1/4 lg:w-1/5 flex-shrink-0 justify-left">
       <h2 class="text-xl font-semibold mb-4 border-b pb-2">Filtros</h2>
       @if (cargando) {
-        <p class="text-gray-500 text-sm animate-pulse">Cargando filtros...</p>
+      <p class="text-gray-500 text-sm animate-pulse">Cargando filtros...</p>
       } @else {
-        <form>
-          <ul class="space-y-3">
-            @for (filtro of filtrosDisponibles; track filtro.id) {
-              <li class="flex items-center">
-                <input type="checkbox"
-                       [id]="filtro.id"
-                       [name]="filtro.id"
-                       [checked]="filtro.checked"
-                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
-                <label [for]="filtro.id" class="ml-2 text-sm text-gray-700 cursor-pointer select-none">{{ filtro.label }}</label>
-              </li>
-            } @empty {
-              <li class="text-sm text-gray-500">No hay filtros disponibles.</li>
-            }
-          </ul>
-        </form>
-      }
-    </aside>
 
-    <!--<main class="w-full">
+        @for (grupo of filtrosDisponibles; track grupo.atributo) {
+        <div class="mb-6">
+          <h4 class="text-lg font-medium mb-2">{{ grupo.atributo }}</h4>
+
+          @for (valor of grupo.valores; let i = $index; track i) {
+          @if (grupo.mostrarTodos || i < 3) { <div class="flex items-center gap-2 mb-1">
+            <input type="checkbox" class="accent-blue-600 w-4 h-4" [checked]="valor.checked"
+              (change)="toggleFiltro(grupo, valor)" />
+            <label class="text-sm text-gray-800 cursor-pointer">
+              {{ valor.label }}
+            </label>
+        </div>
+        }
+        }
+
+        @if (grupo.valores.length > 3) {
+        <button (click)="grupo.mostrarTodos = !grupo.mostrarTodos" class="text-blue-600 text-sm mt-2 hover:underline">
+          {{ grupo.mostrarTodos ? '▲ Mostrar menos' : '▼ Mostrar más' }}
+        </button>
+        }
+  </div>
+  }
+
+  }
+  </aside>
+
+  <!--<main class="w-full">
       @if (cargando) {
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           @for (_ of [1, 2, 3, 4, 5, 6]; track _) {
@@ -52,29 +60,25 @@
         </div>
       }
     </main>-->
-    <main class="w-full flex justify-left" width="100%">
-      @if (cargando) {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse w-fit">
-               @for (_ of [1, 2, 3, 4, 5, 6]; track _) {
-                   <div class="h-80 bg-gray-200 rounded-lg"></div>
-               }
-           </div>
-      } @else {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-fit" id="productos">
-              @for (producto of productos; track producto.id) {
-                  <app-producto
-                      [id]="producto.id.toString()"
-                      [nombre]="producto.name"
-                      [precio]="producto.list_price.toString()"
-                      [imageSrc]="producto.image_1920"
-                      [categoria]="categoriaActual"
-                  />
-              } @empty {
-                  <div class="col-span-full text-center py-10">
-                      <p class="text-gray-500">No se encontraron productos para esta categoria.</p>
-                  </div>
-              }
-          </div>
+  <main class="w-full flex justify-left" width="100%">
+    @if (cargando) {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse w-fit">
+      @for (_ of [1, 2, 3, 4, 5, 6]; track _) {
+      <div class="h-80 bg-gray-200 rounded-lg"></div>
       }
+    </div>
+    } @else {
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-fit" id="productos">
+      @for (producto of productosFiltrados; track producto.id) {
+      <app-producto [id]="producto.id.toString()" [nombre]="producto.name" [precio]="producto.list_price.toString()"
+        [imageSrc]="producto.image_1920" [categoria]="categoriaActual" />
+      } @empty {
+      <div class="col-span-full text-center py-10">
+        <p class="text-gray-500">No se encontraron productos para esta categoria.</p>
+      </div>
+      }
+    </div>
+    }
   </main>
-   </div> </div>
+</div>
+</div>

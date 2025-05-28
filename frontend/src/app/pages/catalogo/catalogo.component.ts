@@ -8,11 +8,19 @@ import { finalize, Subscription } from 'rxjs'; // Para gestionar la suscripción
 import { ProductoComponent } from '../../components/producto/producto.component';
 import { BreadcrumbsComponent, BreadcrumbItem } from '../../components/breadcrumbs/breadcrumbs.component';
 // import { ProductService } from '../../core/services/product.service'; // Importarías tu servicio aquí
-import { GraphqlService,Product } from '../../services/graphql.service';
+import { GraphqlService, Product } from '../../services/graphql.service';
 
 // Interfaces...
-interface ProductoData { id: string; nombre: string; precio: string; imageSrc: string; categoria?: string; descripcion: string; }
-interface FiltroData { id: string; label: string; checked: boolean; }
+interface FiltroData {
+  label: string;
+  checked: boolean;
+}
+
+interface FiltroAgrupado {
+  atributo: string;
+  valores: FiltroData[];
+  mostrarTodos: boolean; // para expandir o contraer
+}
 
 @Component({
   selector: 'app-catalog',
@@ -24,10 +32,10 @@ interface FiltroData { id: string; label: string; checked: boolean; }
 export class CatalogComponent implements OnInit, OnDestroy {
   // Ya NO necesitamos @Input() para la categoría
 
-  categoriaActual: string  = ""; // Propiedad para guardar la categoría leída
+  categoriaActual: string = ""; // Propiedad para guardar la categoría leída
   tituloPagina: string = 'Catálogo';
   productos: Product[] = [];
-  filtrosDisponibles: FiltroData[] = [];
+  filtrosDisponibles: FiltroAgrupado[] = [];
   breadcrumbItems: BreadcrumbItem[] = [];
   cargando = false;
   private routeSub: Subscription | undefined; // Variable para guardar la suscripción
@@ -37,7 +45,37 @@ export class CatalogComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private dbService: GraphqlService
     // , private productService: ProductService // <-- Inyectarías tu servicio aquí
-    ) {}
+  ) { }
+
+ toggleFiltro(grupo: FiltroAgrupado, valor: FiltroData): void {
+  valor.checked = !valor.checked;
+}
+
+get productosFiltrados(): Product[] {
+  const filtrosActivos: { [key: string]: string[] } = {};
+
+  this.filtrosDisponibles.forEach(grupo => {
+    const seleccionados = grupo.valores
+      .filter(f => f.checked)
+      .map(f => f.label.toLowerCase());
+    if (seleccionados.length > 0) {
+      filtrosActivos[grupo.atributo.toLowerCase()] = seleccionados;
+    }
+  });
+
+  if (Object.keys(filtrosActivos).length === 0) {
+    return this.productos;
+  }
+
+  return this.productos.filter(producto => {
+    return Object.entries(filtrosActivos).every(([atributo, valoresSeleccionados]) => {
+      return producto.attributes?.some(attr =>
+        attr.name.toLowerCase() === atributo &&
+        valoresSeleccionados.includes(attr.values[0].name.toLowerCase())
+      );
+    });
+  });
+}
 
   ngOnInit(): void {
     console.log('CatalogComponent inicializado.');
@@ -58,7 +96,7 @@ export class CatalogComponent implements OnInit, OnDestroy {
         console.error("Parámetro 'categoria' no encontrado en la URL.");
         this.categoriaActual = "null";
         this.tituloPagina = 'Categoría no válida';
-        this.breadcrumbItems = [ { label: 'Inicio', url: '/' }, { label: 'Error' }];
+        this.breadcrumbItems = [{ label: 'Inicio', url: '/' }, { label: 'Error' }];
         this.productos = [];
         this.filtrosDisponibles = [];
       }
@@ -96,23 +134,46 @@ export class CatalogComponent implements OnInit, OnDestroy {
   }
 
   cargarDatosSimulados(): void {
-    if (!this.categoriaActual) return;
-    this.cargando = true;
-    this.productos = [];
-    this.filtrosDisponibles = [];
-    console.log(`Iniciando carga simulada para: ${this.categoriaActual}`);
+  if (!this.categoriaActual) return;
+  this.cargando = true;
+  this.productos = [];
+  this.filtrosDisponibles = [];
 
-    // *** SIMULACIÓN (Reemplazar con llamada a Servicio usando this.categoriaActual) ***
-      this.filtrosDisponibles = this.getSimulatedFilters(this.categoriaActual!);
-      console.log(this.categoriaActual!);
-     this.dbService.getProductsByCategory(this.categoriaActual!).subscribe((res) => { this.productos = res; console.log(res)});
-      this.cargando = false;
-      console.log('Datos simulados cargados');
-    // *** FIN SIMULACIÓN ***
-  }
+  this.dbService.getProductsByCategory(this.categoriaActual!).subscribe((res) => {
+    this.productos = res;
+
+    const agrupados: { [atributo: string]: Set<string> } = {};
+
+    res.forEach(producto => {
+      producto.attributes?.forEach(attr => {
+        const nombre = this.capitalize(attr.name);
+        if (!agrupados[nombre]) {
+          agrupados[nombre] = new Set();
+        }
+        //agrupados[nombre].add();
+        attr.values.forEach(val => {
+          agrupados[nombre].add(val.name);
+        })
+      });
+    });
+
+    this.filtrosDisponibles = Object.entries(agrupados).map(([atributo, valores]) => ({
+      atributo,
+      mostrarTodos: false,
+      valores: Array.from(valores).map(v => ({
+        label: v,
+        checked: false
+      }))
+    }));
+
+    this.cargando = false;
+  });
+}
+
+
 
   // ... (resto de funciones helper: getSimulatedFilters, getSimulatedProducts, capitalize) ...
-  getSimulatedFilters(cat: string): FiltroData[] { this.filtrosDisponibles.push({ id: 'filtro1', label: 'Filtro 1', checked: false }); return this.filtrosDisponibles; }
+
   //getSimulatedProducts(cat: string): ProductoData[] { this.productos.push({ id: 'producto1', nombre: 'Producto 1', precio: '100', imageSrc: '', categoria: cat, descripcion: 'Descripción del producto 1' }); return this.productos; }
   capitalize(s: string): string { if (!s) return ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 }
