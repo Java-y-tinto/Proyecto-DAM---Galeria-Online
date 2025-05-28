@@ -72,6 +72,7 @@ type Query {
   productsByCategory(categoryName: String!): [Product!]!
   productById(id: String!): Product
   searchProducts(searchTerm: String!): [Product!] 
+  getRelatedProducts(productId: String!, limit: Int): [Product!]!
   getPartnerId: Int
   getCart: Cart
 }

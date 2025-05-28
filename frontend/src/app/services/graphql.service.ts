@@ -150,6 +150,16 @@ const GET_USER_CART = gql`
   }
 `;
 
+const GET_RELATED_PRODUCTS = gql`
+query getRelatedProducts($productId: String!, $limit: Int!) {
+  getRelatedProducts(productId: $productId, limit: $limit) {
+    id
+    name
+    list_price
+    image_1920
+    image_512
+  }
+}`
 
 const GET_PARTNER_ID = gql`
 query getPartnerId {
@@ -244,7 +254,7 @@ const CHECKOUT_CART_MUTATION = gql`
   providedIn: 'root'
 })
 export class GraphqlService {
-
+ 
   constructor(private apollo: Apollo) { }
   getProductsByCategory(categoryName: string): Observable<Product[]> {
     return this.apollo
@@ -265,6 +275,16 @@ export class GraphqlService {
       })
       .pipe(
         map((result) => result.data.productById)
+      );
+  }
+  getRelatedProducts(id: string, limit: number): Observable<Product[]> {
+    return this.apollo
+      .query<{ getRelatedProducts: Product[] }>({
+        query: GET_RELATED_PRODUCTS,
+        variables: { productId: id, limit },
+      })
+      .pipe(
+        map((result) => result.data.getRelatedProducts)
       );
   }
   registerUser(name: string, email: string, passwd: string) {

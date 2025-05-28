@@ -456,4 +456,66 @@ export const searchProducts = async (searchTerm) => {
         return [];
     }
 };
+export const getRelatedProducts = async (productId, limit = 4) => {
+    try {
+        console.log(`🔍 Buscando productos relacionados para ID: ${productId}`);
+        // 1. Obtener el producto base
+        const baseProducts = await getProductById(productId);
+        if (!baseProducts || baseProducts.length === 0) {
+            console.log('❌ Producto base no encontrado');
+            return [];
+        }
+        const baseProduct = baseProducts[0];
+        console.log(`📦 Producto base: ${baseProduct.name}`);
+        let relatedProducts = [];
+        // 2. Si el producto tiene atributos (estilo, medidas), buscar por similitud
+        if (baseProduct.attributes && baseProduct.attributes.length > 0) {
+            console.log(`🎨 Buscando por atributos similares...`);
+            // Obtener IDs de valores de atributos del producto base
+            const baseAttributeValues = baseProduct.attributes.flatMap(attr => attr.values.map(val => val.id));
+            if (baseAttributeValues.length > 0) {
+                // Buscar productos con atributos similares
+                const templateId = baseProduct.product_tmpl_id[0];
+                // Buscar otras variantes de la misma plantilla o plantillas con atributos similares
+                const relatedTemplateLines = await odooClient.searchRead('product.template.attribute.line', [['value_ids', 'in', baseAttributeValues]], ['product_tmpl_id']);
+                const relatedTemplateIds = [...new Set(relatedTemplateLines
+                        .map(line => line.product_tmpl_id[0])
+                        .filter(id => id !== templateId) // Excluir la plantilla del producto actual
+                    )];
+                if (relatedTemplateIds.length > 0) {
+                    relatedProducts = await odooClient.searchRead('product.product', [
+                        ['product_tmpl_id', 'in', relatedTemplateIds],
+                        ['id', '!=', parseInt(productId)] // Excluir el producto actual
+                    ], ['id', 'name', 'list_price', 'image_512'], 0, // offset
+                    limit + 2 // obtener algunos extras por si algunos están vendidos
+                    );
+                }
+            }
+        }
+        // 3. Si no encontramos suficientes por atributos, buscar por categoría
+        if (relatedProducts.length < limit && baseProduct.categ_id) {
+            console.log(`📂 Complementando con productos de la misma categoría...`);
+            const categoryId = baseProduct.categ_id[0];
+            const categoryProducts = await odooClient.searchRead('product.product', [
+                ['categ_id', '=', categoryId],
+                ['id', '!=', parseInt(productId)]
+            ], ['id', 'name', 'list_price', 'image_512'], 0, limit + 2);
+            // Combinar resultados, evitando duplicados
+            const existingIds = new Set(relatedProducts.map(p => p.id));
+            const additionalProducts = categoryProducts.filter(p => !existingIds.has(p.id));
+            relatedProducts = [...relatedProducts, ...additionalProducts];
+        }
+        // 4. Filtrar productos vendidos
+        const soldProductIds = await getSoldProducts();
+        const availableRelatedProducts = relatedProducts.filter(product => !soldProductIds.includes(product.id));
+        // 5. Limitar resultados
+        const finalResults = availableRelatedProducts.slice(0, limit);
+        console.log(`✅ Encontrados ${finalResults.length} productos relacionados disponibles`);
+        return finalResults;
+    }
+    catch (error) {
+        console.error('❌ Error obteniendo productos relacionados:', error);
+        return [];
+    }
+};
 export { odooClient };

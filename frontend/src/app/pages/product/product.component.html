@@ -52,9 +52,8 @@
     <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">Puede que también te guste...</h2>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
       @for (productoRel of productosRelacionados; track productoRel.id) {
-      <app-producto [id]="productoRel.id" [nombre]="productoRel.nombre" [precio]="productoRel.precio.toString()"
-        [imageSrc]="productoRel.imageSrc" [categoria]="productoRel.categoria"
-        [descripcion]="productoRel.descripcion"></app-producto>
+      <app-producto [id]="productoRel.id" [nombre]="productoRel.name" [precio]="productoRel.list_price.toString()"
+        [imageSrc]="productoRel.image_512"></app-producto>
       }
     </div>
   </div>

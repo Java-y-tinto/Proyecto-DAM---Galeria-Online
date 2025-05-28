@@ -1,4 +1,4 @@
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, getSoldProducts, searchProducts } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, getSoldProducts, searchProducts, getRelatedProducts } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
 export const resolvers = {
     Query: {
@@ -43,6 +43,18 @@ export const resolvers = {
             }
             catch (error) {
                 console.error(`Resolver [BUSQUEDA DE PRODUCTOS]: Error al buscar productos:`, error);
+                return [];
+            }
+        },
+        getRelatedProducts: async (_, { productId, limit = 4 }, context) => {
+            try {
+                console.log(`Resolver: Buscando productos relacionados para ID: ${productId}, límite: ${limit}`);
+                const relatedProducts = await getRelatedProducts(productId, limit);
+                console.log(`Resolver: ${relatedProducts.length} productos relacionados encontrados`);
+                return relatedProducts;
+            }
+            catch (error) {
+                console.error(`Resolver [PRODUCTOS RELACIONADOS]: Error:`, error);
                 return [];
             }
         },

@@ -27,7 +27,7 @@ export class ProductComponent implements OnInit {
   productoId: string = '';
   producto: Product | null = null;
   imagenesProducto: string[] = [];
-  productosRelacionados: ProductoRelacionado[] = [];
+  productosRelacionados: Product[] = [];
   BreadCrumb: BreadcrumbItem[] = [];
   loading: boolean = true;
   error: string | null = null;
@@ -48,6 +48,9 @@ export class ProductComponent implements OnInit {
       this.BreadCrumb = [{ label: 'Inicio', url: '/' }, { label: params['categoria'], url: `/catalogo/${params['categoria']}` }];
       if (this.productoId) {
         this.cargarProducto();
+        this.dbService.getRelatedProducts(this.productoId,4).subscribe((productos) => {
+         this.productosRelacionados = productos;
+        })
       }
     });
   }
