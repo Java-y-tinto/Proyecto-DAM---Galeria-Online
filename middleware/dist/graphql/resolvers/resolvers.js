@@ -1,4 +1,4 @@
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, getSoldProducts } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, getSoldProducts, searchProducts } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
 export const resolvers = {
     Query: {
@@ -28,6 +28,22 @@ export const resolvers = {
             catch (error) {
                 console.error(`Resolver: Error al buscar producto:`, error);
                 return null;
+            }
+        },
+        searchProducts: async (_, { searchTerm }, context) => {
+            try {
+                console.log(`Resolver: Buscando productos con el término de búsqueda: ${searchTerm}`);
+                if (!searchTerm || searchTerm.trim().length === 0) {
+                    console.log(`Resolver: No se proporcionó un término de búsqueda`);
+                    return [];
+                }
+                const products = await searchProducts(searchTerm.trim());
+                console.log(`Resolver: Productos encontrados:`, products);
+                return products;
+            }
+            catch (error) {
+                console.error(`Resolver [BUSQUEDA DE PRODUCTOS]: Error al buscar productos:`, error);
+                return [];
             }
         },
         getPartnerId: async (_, __, context) => {

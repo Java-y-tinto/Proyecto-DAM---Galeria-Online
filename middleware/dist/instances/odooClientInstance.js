@@ -438,4 +438,22 @@ export const getCacheStats = () => {
         }
     };
 };
+// ✅ Buscar productos por nombre (filtrados por vendidos)
+export const searchProducts = async (searchTerm) => {
+    try {
+        console.log(`🔍 Buscando productos con término: "${searchTerm}"`);
+        // Buscar productos cuyo nombre contenga el término de búsqueda (case insensitive)
+        const productsData = await odooClient.searchRead('product.product', [['name', 'ilike', searchTerm]], // 'ilike' es case-insensitive en Odoo
+        ['id', 'name', 'description_sale', 'list_price', 'image_1920', 'image_512']);
+        // Filtrar productos vendidos
+        const soldProductIds = await getSoldProducts();
+        const availableProducts = productsData.filter(product => !soldProductIds.includes(product.id));
+        console.log(`🔍 Búsqueda "${searchTerm}": ${productsData.length} encontrados, ${availableProducts.length} disponibles, ${productsData.length - availableProducts.length} vendidos`);
+        return availableProducts;
+    }
+    catch (error) {
+        console.error('❌ Error al buscar productos:', error);
+        return [];
+    }
+};
 export { odooClient };

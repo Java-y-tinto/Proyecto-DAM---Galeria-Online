@@ -361,11 +361,11 @@ export class GraphqlService {
         map((result) => result)
       );
   }
-searchProducts(query: string): Observable<Product[]> {
+searchProducts(searchTerm: string): Observable<Product[]> {
   return this.apollo
     .query<{ searchProducts: Product[] }>({
       query: SEARCH_PRODUCTS,
-      variables: { query },
+      variables: { searchTerm },
     })
     .pipe(
       map((result) => result.data.searchProducts)
@@ -420,29 +420,5 @@ searchProducts(query: string): Observable<Product[]> {
       );
   }
 
-  // NUEVA: Proceder al checkout
-  checkoutCart(): Observable<CartOperationResult> {
-    console.log('🚀 [GraphQL Service] Iniciando checkout...');
-
-    return this.apollo
-      .mutate<{ checkoutCart: CartOperationResult }>({
-        mutation: CHECKOUT_CART_MUTATION,
-      })
-      .pipe(
-        tap(result => {
-          console.log('📥 [GraphQL Service] Respuesta checkoutCart:', result);
-        }),
-        map((result) => {
-          if (result.errors) {
-            console.error('❌ [GraphQL Service] Errores en checkoutCart:', result.errors);
-            return {
-              success: false,
-              message: 'Error al procesar el pedido'
-            } as unknown as CartOperationResult;
-          }
-          return result.data!.checkoutCart;
-        })
-      );
-  }
 
 }

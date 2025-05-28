@@ -247,35 +247,7 @@ export class CartService {
     );
   }
 
-  /**
-   * Proceder al checkout
-   */
-  checkout(): Observable<CartOperationResult> {
-    console.log('💳 [Cart Service] Iniciando checkout...');
 
-    this.updateState({ loading: true, error: null });
-
-    return this.graphqlService.checkoutCart().pipe(
-      tap((result: CartOperationResult) => {
-        if (result.success) {
-          console.log('✅ [Cart Service] Checkout exitoso:', result);
-          // Limpiar carrito después del checkout exitoso
-          this.setCart(null);
-        } else {
-          console.error('❌ [Cart Service] Error en checkout:', result.message);
-          this.updateState({ error: String(result.message) });
-        }
-      }),
-      catchError(error => {
-        console.error('❌ [Cart Service] Error en checkout:', error);
-        this.updateState({ error: 'Error al procesar el pedido' });
-        return throwError(() => error);
-      }),
-      finalize(() => {
-        this.updateState({ loading: false });
-      })
-    );
-  }
 
   // ============ MÉTODOS DE UTILIDAD ============
 
