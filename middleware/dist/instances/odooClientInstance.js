@@ -211,6 +211,79 @@ export const getProductsByCategory = async (categoryName) => {
         return [];
     }
 };
+// Obtener productos destacados (excluyendo los vendidos)
+export const getFeaturedProducts = async () => {
+    try {
+        const products = await odooClient.searchRead('product.product', [['x_featured', '=', true]], ['id', 'name', 'list_price', 'image_1920', 'image_512', 'categ_id']);
+        const soldProductIds = await getSoldProducts();
+        const availableProducts = products.filter(product => !soldProductIds.includes(product.id));
+        // Obtener todas las categorias unicas de los productos obtenidos
+        const categoryIds = new Set(availableProducts.map(product => product.categ_id[0]));
+        // Traer todas las categorias de producto
+        const categories = await odooClient.searchRead('product.category', [['id', 'in', [...categoryIds]]], ['id', 'name']);
+        // Crear un Map ID/Nombre para busqueda rapida
+        const categoryMap = new Map();
+        categories.forEach(category => {
+            categoryMap.set(category.id, category.name);
+        });
+        // Añadir categorias a productos
+        const enrichedProducts = availableProducts.map(product => ({
+            ...product,
+            category: product.categ_id
+                ? categoryMap.get(product.categ_id[0]) || 'Sin categoría'
+                : 'Sin categoría'
+        }));
+        return enrichedProducts;
+    }
+    catch (error) {
+        console.error("❌ Error en getFeaturedProducts:", error);
+        return [];
+    }
+};
+// ✅ Obtener productos más nuevos (por fecha de creación, excluyendo los vendidos)
+export const getNewestProducts = async () => {
+    try {
+        console.log('🆕 Obteniendo productos más nuevos...');
+        const products = await odooClient.searchRead('product.product', [], // Sin filtros específicos, queremos todos los productos
+        ['id', 'name', 'list_price', 'image_1920', 'image_512', 'categ_id', 'create_date'], 0, // offset
+        20, // límite mayor por si algunos están vendidos
+        'create_date DESC' // ordenar por fecha de creación descendente (más nuevos primero)
+        );
+        const soldProductIds = await getSoldProducts();
+        const availableProducts = products.filter(product => !soldProductIds.includes(product.id));
+        // Limitar a los 8 más nuevos
+        const newestProducts = availableProducts.slice(0, 8);
+        if (newestProducts.length === 0) {
+            console.log('⚠️ No hay productos nuevos disponibles');
+            return [];
+        }
+        // Obtener todas las categorías únicas de los productos obtenidos
+        const categoryIds = new Set(newestProducts
+            .map(product => product.categ_id ? product.categ_id[0] : null)
+            .filter(id => id !== null));
+        // Traer todas las categorías de producto
+        const categories = await odooClient.searchRead('product.category', [['id', 'in', [...categoryIds]]], ['id', 'name']);
+        // Crear un Map ID/Nombre para búsqueda rápida
+        const categoryMap = new Map();
+        categories.forEach(category => {
+            categoryMap.set(category.id, category.name);
+        });
+        // Añadir categorías a productos
+        const enrichedProducts = newestProducts.map(product => ({
+            ...product,
+            category: product.categ_id
+                ? categoryMap.get(product.categ_id[0]) || 'Sin categoría'
+                : 'Sin categoría'
+        }));
+        console.log(`✅ Productos más nuevos obtenidos: ${enrichedProducts.length}`);
+        console.log(`📅 Fechas: desde ${enrichedProducts[enrichedProducts.length - 1]?.create_date} hasta ${enrichedProducts[0]?.create_date}`);
+        return enrichedProducts;
+    }
+    catch (error) {
+        console.error("❌ Error en getNewestProducts:", error);
+        return [];
+    }
+};
 // ✅ Obtener partner ID de un usuario
 export const getOdooPartnerId = async (uid) => {
     try {

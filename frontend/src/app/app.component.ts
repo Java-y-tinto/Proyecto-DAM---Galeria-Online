@@ -7,10 +7,11 @@ import { CartService } from './services/cart.service';
 import { inject } from '@angular/core';
 import { CartDropdownMenuComponent } from './components/cart-dropdown-menu/cart-dropdown-menu.component';
 import { SearchBarComponent } from "./components/search-bar/search-bar.component";
+import { NotificationContainerComponent } from "./components/notification-container/notification-container.component";
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, DropdownMenuComponent, CartDropdownMenuComponent, SearchBarComponent],
+  imports: [RouterOutlet, RouterLink, DropdownMenuComponent, CartDropdownMenuComponent, SearchBarComponent, NotificationContainerComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })

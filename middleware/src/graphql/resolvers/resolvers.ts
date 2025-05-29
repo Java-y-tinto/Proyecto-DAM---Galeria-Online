@@ -10,7 +10,9 @@ import {
   getOdooPartnerId,
   getSoldProducts,
   searchProducts,
-  getRelatedProducts
+  getRelatedProducts,
+  getFeaturedProducts,
+  getNewestProducts
 
 } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
@@ -75,11 +77,33 @@ export const resolvers = {
         return [];
       }
     },
+    getFeaturedProducts: async (_: any, __: any, context: any) => {
+      try {
+        console.log(`Resolver: Buscando productos destacados`);
+        const featuredProducts = await getFeaturedProducts();
+        console.log(`Resolver: ${featuredProducts.length} productos destacados encontrados`);
+        return featuredProducts;
+      } catch (error) {
+        console.error(`Resolver [PRODUCTOS DESTACADOS]: Error:`, error);
+        return [];
+      }
+    },
     getPartnerId: async (_: any, __: any, context: any) => {
       if (!context.user) {
         throw new Error('No autorizado'); // Lanza error en lugar de devolver objeto
       }
       return await getOdooPartnerId(context.user.uid);
+    },
+     getNewestProducts: async (_: any, __: any, context: any) => {
+      try {
+        console.log('Resolver: Obteniendo productos más nuevos...');
+        const newestProducts = await getNewestProducts();
+        console.log(`Resolver: ${newestProducts.length} productos más nuevos encontrados`);
+        return newestProducts;
+      } catch (error) {
+        console.error('Resolver [PRODUCTOS MÁS NUEVOS]: Error:', error);
+        return [];
+      }
     },
     /* getCart: async (_: any, __: any, context: any) => {
      if (!context.user) {

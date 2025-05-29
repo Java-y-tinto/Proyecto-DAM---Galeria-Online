@@ -1,0 +1,14 @@
+.notification-enter {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    .notification-enter-active {
+      opacity: 1;
+      transform: translateX(0);
+      transition: all 300ms ease-in-out;
+    }
+    .notification-leave-active {
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 300ms ease-in-out;
+    }

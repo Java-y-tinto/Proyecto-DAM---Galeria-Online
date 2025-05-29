@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
 import { Observable } from 'rxjs';
-import { map, tap,catchError } from 'rxjs/operators';
+import { map, tap, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ApolloClient, ApolloQueryResult, InMemoryCache } from '@apollo/client/core';
+import { NotificationService } from './notification.service';
 
 // --- Interfaz para el Producto ---
 // Define una interfaz que coincida con los campos que pides en tu query
@@ -36,6 +37,8 @@ export interface Product {
   image_1920: string;
 
   image_512: string;
+  category?: string;
+  create_date: string;
   attributes?: ProductAttribute[];
   variant_attributes?: VariantAttributeValue[];
 }
@@ -58,8 +61,8 @@ export type AuthPayload = {
 }
 
 export type CartOperationResult = {
-  success: Boolean
-  message: String
+  success: boolean
+  message: string
   order_id: number
   line_id: number
   order_name: String
@@ -126,6 +129,33 @@ const GET_PRODUCT_BY_ID = gql`
   }
   }
 `;
+
+const GET_FEATURED_PRODUCTS = gql`
+  query GetFeaturedProducts {
+    getFeaturedProducts {
+      id
+      name
+      list_price
+      image_1920
+      image_512
+      category
+    }
+  }
+`;
+const GET_NEWEST_PRODUCTS = gql`
+  query GetNewestProducts {
+    getNewestProducts {
+      id
+      name
+      list_price
+      image_1920
+      image_512
+      category
+      create_date
+    }
+  }
+`;
+
 
 const GET_USER_CART = gql`
   query GetCart {
@@ -259,8 +289,41 @@ const CHECKOUT_CART_MUTATION = gql`
   providedIn: 'root'
 })
 export class GraphqlService {
- 
+  private notificationService = inject(NotificationService);
+
+
   constructor(private apollo: Apollo) { }
+
+  private handleGraphQLError(error: any, operationName: string = 'Operación') {
+    console.error(`❌ [GraphQL Service] Error en ${operationName}:`, error);
+
+    let errorMessage = 'Ha ocurrido un error inesperado';
+
+    if (error.graphQLErrors && error.graphQLErrors.length > 0) {
+      errorMessage = error.graphQLErrors[0].message;
+    } else if (error.networkError) {
+      errorMessage = 'Error de conexión. Verifique su conexión a internet.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
+    this.notificationService.showError(errorMessage, `Error en ${operationName}`);
+    return of(null)
+  }
+
+  private handleOperationResult<T extends { success: boolean; message: string }>(
+    result: T,
+    successMessage?: string,
+    operationName: string = 'Operación'
+  ): T {
+    if (!result.success) {
+      this.notificationService.showError(result.message, `Error en ${operationName}`);
+    } else if (successMessage) {
+      this.notificationService.showSuccess(successMessage, operationName);
+    }
+    return result;
+  }
+
   getProductsByCategory(categoryName: string): Observable<Product[]> {
     return this.apollo
       .query<{ productsByCategory: Product[] }>({
@@ -282,6 +345,25 @@ export class GraphqlService {
         map((result) => result.data.productById)
       );
   }
+  getFeaturedProducts(): Observable<Product[]> {
+    return this.apollo
+      .query<{ getFeaturedProducts: Product[] }>({
+        query: GET_FEATURED_PRODUCTS,
+      })
+      .pipe(
+        map((result) => result.data.getFeaturedProducts)
+      );
+  }
+  getNewestProducts(): Observable<Product[]> {
+    return this.apollo
+      .query<{ getNewestProducts: Product[] }>({
+        query: GET_NEWEST_PRODUCTS,
+        fetchPolicy: 'network-only' // Siempre obtener datos frescos
+      })
+      .pipe(
+        map((result) => result.data.getNewestProducts)
+      );
+  }
   getRelatedProducts(id: string, limit: number): Observable<Product[]> {
     return this.apollo
       .query<{ getRelatedProducts: Product[] }>({
@@ -292,22 +374,53 @@ export class GraphqlService {
         map((result) => result.data.getRelatedProducts)
       );
   }
-  registerUser(name: string, email: string, passwd: string) {
+   registerUser(name: string, email: string, passwd: string) {
     return this.apollo.mutate({
       mutation: REGISTER_USER_MUTATION,
       variables: { name, email, passwd },
-    });
+    }).pipe(
+      map((result: any) => {
+        const authResult = result.data.registerUser;
+        return this.handleOperationResult(
+          authResult,
+          authResult.success ? 'Cuenta creada exitosamente' : undefined,
+          'Registro de usuario'
+        );
+      }),
+      catchError(error => {
+        this.handleGraphQLError(error, 'Registro de usuario');
+        return of({
+          success: false,
+          message: 'Error al registrar usuario',
+          token: null
+        });
+      })
+    );
   }
   loginUser(email: string, password: string) {
     return this.apollo.mutate({
       mutation: LOGIN_USER_MUTATION,
       variables: { email, password },
-    });
+    }).pipe(
+      map((result: any) => {
+        if (result.data?.login?.token) {
+          this.notificationService.showSuccess('Sesión iniciada correctamente', 'Inicio de sesión');
+          return result;
+        } else {
+          this.notificationService.showError('Credenciales incorrectas', 'Error de inicio de sesión');
+          return null;
+        }
+      }),
+      catchError(error => {
+        this.handleGraphQLError(error, 'Inicio de sesión');
+        return of(null);
+      })
+    );
   }
   addToCart(productId: number) {
-     console.log('🚀 [GraphQL Service] *** INICIANDO addToCart ***');
-  console.log('🚀 [GraphQL Service] ProductId:', productId, 'Tipo:', typeof productId);
-  
+    console.log('🚀 [GraphQL Service] *** INICIANDO addToCart ***');
+    console.log('🚀 [GraphQL Service] ProductId:', productId, 'Tipo:', typeof productId);
+
     return this.apollo.mutate({
       mutation: ADD_TO_CART_MUTATION,
       variables: { productId },
@@ -320,32 +433,38 @@ export class GraphqlService {
         console.log('📥 [GraphQL Service] result.loading:', result.loading);
       }),
       map((result) => {
-                console.log('🔄 [GraphQL Service] *** MAPEANDO RESULTADO ***');
-        
+        console.log('🔄 [GraphQL Service] *** MAPEANDO RESULTADO ***');
+
         if (result.errors && result.errors.length > 0) {
           console.error('❌ [GraphQL Service] GraphQL Errors:', result.errors);
-          return {
+          const errorResult = {
             success: false,
             message: result.errors[0]?.message || 'Error GraphQL'
           };
+          return this.handleOperationResult(errorResult, undefined, 'Añadir al carrito');
         }
-        
+
         if (!result.data) {
           console.error('❌ [GraphQL Service] No hay data en la respuesta');
-          return {
+          const errorResult = {
             success: false,
             message: 'Sin datos en la respuesta'
           };
+          return this.handleOperationResult(errorResult, undefined, 'Añadir al carrito');
         }
-        
-        
-        
+
+
+
         const finalResult = (result as any).data.addToCart;
         console.log('✅ [GraphQL Service] Resultado procesado:', finalResult);
-        return finalResult;
+        return this.handleOperationResult(
+          finalResult,
+          finalResult.success ? 'Producto añadido al carrito correctamente' : undefined,
+          'Añadir al carrito'
+        );
       }),
       catchError(error => {
-        console.error('💥 [GraphQL Service] Error en pipe:', error);
+        this.handleGraphQLError(error, 'Añadir al carrito');
         return of({
           success: false,
           message: 'Error de conexión: ' + error.message
@@ -386,16 +505,16 @@ export class GraphqlService {
         map((result) => result)
       );
   }
-searchProducts(searchTerm: string): Observable<Product[]> {
-  return this.apollo
-    .query<{ searchProducts: Product[] }>({
-      query: SEARCH_PRODUCTS,
-      variables: { searchTerm },
-    })
-    .pipe(
-      map((result) => result.data.searchProducts)
-    );
-}
+  searchProducts(searchTerm: string): Observable<Product[]> {
+    return this.apollo
+      .query<{ searchProducts: Product[] }>({
+        query: SEARCH_PRODUCTS,
+        variables: { searchTerm },
+      })
+      .pipe(
+        map((result) => result.data.searchProducts)
+      );
+  }
   removeFromCart(lineId: number): Observable<CartOperationResult> {
     console.log('🚀 [GraphQL Service] Removiendo producto del carrito, lineId:', lineId);
 
@@ -410,18 +529,33 @@ searchProducts(searchTerm: string): Observable<Product[]> {
         }),
         map((result) => {
           if (result.errors) {
-            return {
-              success: false, // Provide a default value for success
+            const errorResult = {
+              success: false,
               message: 'Error al remover producto del carrito',
-            } as unknown as CartOperationResult; // Cast to CartOperationResult
+            } as unknown as CartOperationResult;
+            return this.handleOperationResult(errorResult, undefined, 'Remover del carrito');
           }
-          return result.data!.removeFromCart;
+
+          const finalResult = result.data!.removeFromCart;
+          return this.handleOperationResult(
+            finalResult,
+            finalResult.success ? 'Producto removido del carrito' : undefined,
+            'Remover del carrito'
+          );
+        }),
+        catchError(error => {
+          this.handleGraphQLError(error, 'Remover del carrito');
+          return of({
+            success: false,
+            message: 'Error de conexión'
+          } as unknown as CartOperationResult);
         })
       );
   }
 
+
   // NUEVA: Vaciar carrito completo
-  clearCart(): Observable<CartOperationResult> {
+    clearCart(): Observable<CartOperationResult> {
     console.log('🚀 [GraphQL Service] Vaciando carrito...');
 
     return this.apollo
@@ -435,15 +569,28 @@ searchProducts(searchTerm: string): Observable<Product[]> {
         map((result) => {
           if (result.errors) {
             console.error('❌ [GraphQL Service] Errores en clearCart:', result.errors);
-            return {
+            const errorResult = {
               success: false,
               message: 'Error al vaciar el carrito'
-            } as unknown as CartOperationResult;
+            } as CartOperationResult;
+            return this.handleOperationResult(errorResult, undefined, 'Vaciar carrito');
           }
-          return result.data!.clearCart;
+          
+          const finalResult = result.data!.clearCart;
+          return this.handleOperationResult(
+            finalResult,
+            finalResult.success ? 'Carrito vaciado correctamente' : undefined,
+            'Vaciar carrito'
+          );
+        }),
+        catchError(error => {
+          this.handleGraphQLError(error, 'Vaciar carrito');
+          return of({
+            success: false,
+            message: 'Error de conexión'
+          } as CartOperationResult);
         })
       );
   }
-
 
 }

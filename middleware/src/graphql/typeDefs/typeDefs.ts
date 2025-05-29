@@ -24,7 +24,9 @@ type Product {
   image_1920: String
   image_512: String
   list_price: Float
-  x_sold: Boolean
+  x_featured: Boolean 
+  category: String
+  create_date: String
   attributes: [ProductAttribute]
   variant_attributes: [VariantAttributeValue]
 }
@@ -73,6 +75,8 @@ type Query {
   productById(id: String!): Product
   searchProducts(searchTerm: String!): [Product!] 
   getRelatedProducts(productId: String!, limit: Int): [Product!]!
+  getFeaturedProducts: [Product!]
+  getNewestProducts: [Product!]!
   getPartnerId: Int
   getCart: Cart
 }
