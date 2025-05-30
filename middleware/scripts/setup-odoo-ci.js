@@ -169,7 +169,7 @@ async function main() {
     await checkOdooAvailability();
     const client = await connectToOdoo();
     await setupTestData(client);
-
+    await simpleAuthenticatedCall(client);
     console.log('🎉 Configuración de datos de prueba completada exitosamente!');
   } catch (error) {
     console.error('❌ Error crítico durante la configuración de datos de prueba:', error.message);
