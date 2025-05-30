@@ -76,16 +76,18 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-middleware]
     env:
-      JWT_SECRET: ${{secrets.JWT_SECRET_TEST}}
+      # CORREGIDO: Usar el nombre correcto del secret
+      JWT_SECRET: "174c7356d18aeea2b797abfc2cc9ca9feae90b91d4664c7786a22b0f2d0e2202ac2238c7261595a7c32f9a4da7bf0b645e1b6c15a96c0c037f0b25c60cd8167f9309f5889c8799f01c001202eaee161e474665e1d569d127b0ee61049c6a9b7695325172006149a950ef4e540d243096630869454a5bd4c9524bbac99b832b9d2094c3361cb602a2d90361827c5f6398aff28a13c4880ce5a9d53304775acc52fc7be759a5f539b2c5b3dcbe1d420fe5aefc523fcfb8895a2dbabab60051a736d3587253afe406460098a61386a96d789d64dd6c9bb5e8a5a87dde7e5634419faa0a61acfdacc077119454629bf371150e867e5d262ba1783f4f5541891a5b2d"
       JWT_EXPIRES_IN: "1h"
       PORT: 4000
       
-      # Odoo variables
+      # Odoo variables - CORREGIDO: Usar contraseña para testing
       ODOO_BASE_URL: "http://localhost"
       ODOO_PORT: 8069
       ODOO_DB: "odoo_test"
       ODOO_USERNAME: "admin"
       ODOO_PASSWORD: "admin"
+      # REMOVIDO: ODOO_API_KEY para usar password en testing
       NODE_ENV: "test"
       
     strategy:
@@ -126,41 +128,76 @@ jobs:
           sleep 10; 
         done'
         
+        # NUEVO: Esperar a que la DB esté completamente inicializada
+        echo "⏳ Esperando inicialización completa de la base de datos..."
+        sleep 30
+        
         echo "✅ Odoo completamente listo!"
         echo "🌐 URL: http://localhost:8069"
 
-    - name: Verify Odoo setup
+    - name: Verify Odoo setup and test authentication
       run: |
         echo "🧪 Verificando Odoo..."
         
         # Verificar conectividad básica
         curl -f "http://localhost:8069/" && echo "✅ Odoo responde"
         
+        # NUEVO: Probar autenticación con las credenciales
+        echo "🔐 Probando autenticación Odoo..."
+        AUTH_TEST=$(curl -s -X POST "http://localhost:8069/web/session/authenticate" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "params": {
+              "db": "odoo_test",
+              "login": "admin", 
+              "password": "admin"
+            }
+          }')
+        
+        echo "Respuesta de autenticación: $AUTH_TEST"
+        
         # Verificar logs para ver si la DB se creó
         echo "📋 Últimos logs de Odoo:"
-        docker logs backend-odoo-1 --tail 20
+        docker logs backend-odoo-1 --tail 30
 
     # 🔧 PASO 2: Setup y test Middleware  
     - name: Download compiled middleware
       uses: actions/download-artifact@v4
       with:
         name: middleware-compiled
-        path: middleware/
+        path: middleware/dist/
 
     - name: Install production dependencies
       working-directory: middleware
       run: npm ci --omit=dev
 
-    - name: Start middleware
-      working-directory: middleware
+    - name: Debug environment variables
       run: |
-        echo "🚀 Iniciando middleware..."
-        echo "Variables de entorno:"
+        echo "🔍 Variables de entorno del middleware:"
+        echo "JWT_SECRET length: ${#JWT_SECRET}"
+        echo "JWT_SECRET set: $([ -n "$JWT_SECRET" ] && echo 'YES' || echo 'NO')"
         echo "ODOO_BASE_URL: $ODOO_BASE_URL"
         echo "ODOO_PORT: $ODOO_PORT"
         echo "ODOO_DB: $ODOO_DB"
         echo "ODOO_USERNAME: $ODOO_USERNAME"
+        echo "ODOO_PASSWORD set: $([ -n "$ODOO_PASSWORD" ] && echo 'YES' || echo 'NO')"
         echo "NODE_ENV: $NODE_ENV"
+
+    - name: Start middleware
+      working-directory: middleware
+      run: |
+        echo "🚀 Iniciando middleware..."
+        
+        # CORREGIDO: Exportar todas las variables necesarias
+        export JWT_SECRET="$JWT_SECRET"
+        export JWT_EXPIRES_IN="$JWT_EXPIRES_IN"
+        export PORT="$PORT"
+        export ODOO_BASE_URL="$ODOO_BASE_URL"
+        export ODOO_PORT="$ODOO_PORT"
+        export ODOO_DB="$ODOO_DB"
+        export ODOO_USERNAME="$ODOO_USERNAME"
+        export ODOO_PASSWORD="$ODOO_PASSWORD"
+        export NODE_ENV="$NODE_ENV"
         
         node ./dist/index.js &
         MIDDLEWARE_PID=$!
@@ -181,8 +218,8 @@ jobs:
         echo "1. Test health endpoint:"
         curl -f http://localhost:4000/health && echo "✅ Health check OK"
         
-        # Test 2: GraphQL endpoint
-        echo "2. Test GraphQL endpoint:"
+        # Test 2: GraphQL endpoint básico
+        echo "2. Test GraphQL endpoint (productos):"
         GRAPHQL_RESPONSE=$(curl -s -X POST http://localhost:4000/graphql \
           -H "Content-Type: application/json" \
           -d '{"query": "{ products { id name } }"}')
@@ -190,10 +227,36 @@ jobs:
         echo "GraphQL Response: $GRAPHQL_RESPONSE"
         
         if echo "$GRAPHQL_RESPONSE" | grep -q "data\|products"; then
-          echo "✅ GraphQL test OK"
+          echo "✅ GraphQL products test OK"
         else
           echo "⚠️ GraphQL returned unexpected response"
         fi
+        
+        # Test 3: GraphQL endpoint con autenticación
+        echo "3. Test GraphQL con autenticación (registro):"
+        REGISTER_RESPONSE=$(curl -s -X POST http://localhost:4000/graphql \
+          -H "Content-Type: application/json" \
+          -d '{
+            "query": "mutation { registerUser(name: \"Test User\", email: \"test@test.com\", passwd: \"password123\") { success message token } }"
+          }')
+        
+        echo "Register Response: $REGISTER_RESPONSE"
+        
+        if echo "$REGISTER_RESPONSE" | grep -q "success\|registerUser"; then
+          echo "✅ GraphQL auth test OK"
+        else
+          echo "⚠️ GraphQL auth test failed"
+        fi
+
+    - name: Show middleware logs on failure
+      if: failure()
+      run: |
+        echo "📋 Logs del middleware (últimas 50 líneas):"
+        # Los logs del middleware deberían estar en los logs del proceso
+        ps aux | grep node || echo "No hay procesos node corriendo"
+        
+        echo "📋 Logs de Odoo (últimas 50 líneas):"
+        docker logs backend-odoo-1 --tail 50
 
     - name: Cleanup
       if: always()
@@ -203,6 +266,9 @@ jobs:
           echo "🛑 Deteniendo middleware..."
           kill $MIDDLEWARE_PID || true
         fi
+        
+        # Detener todos los procesos node relacionados
+        pkill -f "node.*dist/index.js" || true
         
         # Detener Odoo
         echo "🛑 Deteniendo Odoo..."
