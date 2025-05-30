@@ -143,8 +143,7 @@ async function runTests() {
     `query GetProducts { products { id name list_price x_featured category } }`
   );
   testResults.getProducts = 
-    assert(res.data?.products && Array.isArray(res.data.products), 'Obtener lista de productos') &&
-    assert(res.data?.products.getNewestProducts != "[]", 'La lista de productos no está vacía');
+    assert(res.data?.products && Array.isArray(res.data.products), 'Obtener lista de productos');
   if (res.data?.products?.[0]?.id) {
     testProductId = res.data.products[0].id; // Guardar ID para pruebas posteriores
   }
