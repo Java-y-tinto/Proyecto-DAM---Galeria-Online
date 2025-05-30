@@ -36,6 +36,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+       
+      - name: prueba
+        run: docker ps
+
+      
+
       - name: Instalar dependencias middleware
         working-directory: middleware
         run: npm ci --omit=dev
@@ -46,7 +52,5 @@ jobs:
       
       - name: Verificar que odoo esta corriendo
         run: curl -f http://localhost:8069/web/health
-      
-      - name: prueba
-        run: docker ps
+     
     
