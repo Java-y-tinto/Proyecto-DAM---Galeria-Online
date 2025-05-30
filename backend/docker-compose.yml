@@ -1,54 +1,77 @@
+# Archivo: backend/docker-compose.yml
 version: '3.8'
 
 services:
   db:
-    image: postgres:15.0
+    image: postgres:15
     environment:
-      - POSTGRES_USER=odoo
-      - POSTGRES_PASSWORD=odoo
-      - POSTGRES_DB=postgres
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data/pgdata
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U odoo"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 10s
 
   odoo:
     image: odoo:18.0
-    environment:
-      - HOST=db                    # ✅ Conectar a PostgreSQL
-      - USER=odoo
-      - PASSWORD=odoo
-      - ADMIN_PASSWD=admin         # ✅ Master password para gestión de DB
-    ports:
-      - "8069:8069"
     depends_on:
       db:
-        condition: service_healthy  # ✅ Esperar a que PostgreSQL esté listo
+        condition: service_healthy
+    ports:
+      - "8069:8069"
+    environment:
+      # Database configuration
+      - HOST=db
+      - USER=odoo
+      - PASSWORD=odoo
+      
+      # Odoo configuration for testing
+      - ADMIN_PASSWD=admin
+      - DB_MAXCONN=64
+      - DB_TEMPLATE=template0
+      
+      # Auto-initialize database for testing
+      - ODOO_RC=/etc/odoo/odoo.conf
     volumes:
       - odoo_data:/var/lib/odoo
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
     command: >
       bash -c "
-        echo '⏳ Esperando PostgreSQL...';
-        until pg_isready -h db -U odoo; do 
-          echo 'PostgreSQL aún no está listo...'; 
-          sleep 3; 
-        done;
+        echo 'Starting Odoo initialization...'
         
-        echo '🗄️ Verificando si existe la base de datos odoo_test...';
-        if ! psql -h db -U odoo -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='odoo_test'\" 2>/dev/null | grep -q 1; then
-          echo '🔨 Creando base de datos odoo_test...';
-          odoo -d odoo_test -i base --stop-after-init --without-demo=all --log-level=warn;
-          echo '✅ Base de datos creada exitosamente!';
-        else
-          echo 'ℹ️ Base de datos odoo_test ya existe';
-        fi;
+        # Wait for PostgreSQL to be ready
+        while ! pg_isready -h db -U odoo; do
+          echo 'Waiting for PostgreSQL...'
+          sleep 2
+        done
         
-        echo '🚀 Iniciando Odoo en modo normal...';
-        exec odoo;
+        echo 'PostgreSQL is ready!'
+        
+        # Initialize the database with demo data for testing
+        if [ \"$$NODE_ENV\" = \"test\" ] || [ \"$$CI\" = \"true\" ]; then
+          echo 'Initializing test database...'
+          odoo -d odoo_test -i base --stop-after-init --without-demo=False
+          echo 'Database initialized!'
+        fi
+        
+        # Start Odoo normally
+        echo 'Starting Odoo server...'
+        odoo
       "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8069/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
 volumes:
   postgres_data:
