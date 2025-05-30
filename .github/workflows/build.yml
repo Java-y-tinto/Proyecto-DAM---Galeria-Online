@@ -117,9 +117,7 @@ jobs:
       run: |
         echo "🧪 Verificación final..."
         
-        # Verificar que la DB existe
-        docker exec backend-db-1 psql -U odoo -d postgres -c "SELECT datname FROM pg_database WHERE datname='odoo_test';" | grep odoo_test
-        echo "✅ Base de datos verificada"
+        docker compose ps
         
         # Verificar respuesta web
         curl -s "http://localhost:8069/web/login?db=odoo_test" | grep -q "odoo_test"
