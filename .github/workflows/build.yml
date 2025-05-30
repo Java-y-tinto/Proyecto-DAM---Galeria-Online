@@ -58,25 +58,21 @@ jobs:
           timeout 60s bash -c 'until curl -sf http://localhost:8069/web/health; do sleep 5; done'
           echo "Odoo está respondiendo."
 
-      - name: Inicializar base de datos Odoo con datos demo
+      - name: Inicializar base de datos Odoo e instalar módulos
         env:
           ODOO_CONTAINER_ID: ${{ job.services.odoo.id }}
         run: |
           echo "ID del contenedor Odoo: $ODOO_CONTAINER_ID"
-          
-          # A continuación, se ejecuta el comando 'odoo' (odoo-bin) dentro del contenedor
-          # para inicializar la base de datos 'odoo_test'.
           docker exec "$ODOO_CONTAINER_ID" odoo \
             -d odoo_test \
-            -i base \
+            -i base,product \
             --without-demo=False \
             --stop-after-init \
             --log-level=info \
             --db_host=db \
             --db_user=odoo \
             --db_password=odoo
-            
-          echo "Base de datos Odoo 'odoo_test' inicializada o la inicialización fue intentada."
+          echo "Base de datos Odoo 'odoo_test' inicializada con los módulos 'base' y 'product'."
           
       - name: Probar endpoint JSON-RPC de Odoo con curl
         run: |
