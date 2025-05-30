@@ -1,16 +1,55 @@
+version: '3.8'
+
 services:
-    db:
-        image: postgres:15.0
-        environment:
-            - POSTGRES_USER=odoo
-            - POSTGRES_PASSWORD=odoo
-            - POSTGRES_DB=postgres
-    odoo:
-        image: odoo:18.0
-        environment:
-            - USER=odoo
-            - PASSWORD=odoo
-        ports:
-            - "8069:8069"
-        depends_on:
-            - db
+  db:
+    image: postgres:15.0
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  odoo:
+    image: odoo:18.0
+    environment:
+      - HOST=db                    # ✅ Conectar a PostgreSQL
+      - USER=odoo
+      - PASSWORD=odoo
+      - ADMIN_PASSWD=admin         # ✅ Master password para gestión de DB
+    ports:
+      - "8069:8069"
+    depends_on:
+      db:
+        condition: service_healthy  # ✅ Esperar a que PostgreSQL esté listo
+    volumes:
+      - odoo_data:/var/lib/odoo
+    command: >
+      bash -c "
+        echo '⏳ Esperando PostgreSQL...';
+        until pg_isready -h db -U odoo; do 
+          echo 'PostgreSQL aún no está listo...'; 
+          sleep 3; 
+        done;
+        
+        echo '🗄️ Verificando si existe la base de datos odoo_test...';
+        if ! psql -h db -U odoo -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='odoo_test'\" 2>/dev/null | grep -q 1; then
+          echo '🔨 Creando base de datos odoo_test...';
+          odoo -d odoo_test -i base --stop-after-init --without-demo=all --log-level=warn;
+          echo '✅ Base de datos creada exitosamente!';
+        else
+          echo 'ℹ️ Base de datos odoo_test ya existe';
+        fi;
+        
+        echo '🚀 Iniciando Odoo en modo normal...';
+        exec odoo;
+      "
+
+volumes:
+  postgres_data:
+  odoo_data:
