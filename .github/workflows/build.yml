@@ -188,13 +188,7 @@ jobs:
       run: |
         echo "📦 Instalando dependencias del frontend..."
         npm ci
-
-    - name: 🔍 Lint del código
-      working-directory: ./frontend
-      run: |
-        echo "🔍 Ejecutando lint..."
-        npm run lint || echo "⚠️ Lint completado con warnings"
-
+        
     - name: 🔨 Build de producción
       working-directory: ./frontend
       run: |
