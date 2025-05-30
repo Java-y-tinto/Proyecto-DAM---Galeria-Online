@@ -1,10 +1,10 @@
-name: CI Pipeline - Galería Online
+name: Node.js CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, develop ]
 
 env:
   NODE_VERSION: '20'
