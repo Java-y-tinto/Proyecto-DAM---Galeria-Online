@@ -802,7 +802,9 @@ export const clearCart = async (uid: number): Promise<CartOperationResult> => {
             console.log(`🗑️ [clearCart] Eliminando ${lineIds.length} líneas:`, lineIds);
             
             try {
-                await odooClient.delete('sale.order.line', lineIds);
+                lineIds.forEach(async (lineId) => {
+                    await odooClient.delete('sale.order.line', lineId);
+                })
                 console.log(`✅ [clearCart] Líneas eliminadas exitosamente`);
                 
                 // Invalidar caches de productos afectados
