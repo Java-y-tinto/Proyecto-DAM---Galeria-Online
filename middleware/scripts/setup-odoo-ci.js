@@ -142,12 +142,12 @@ async function setupTestData(client) {
   // Usamos product.product porque es el modelo vendible que puede tener variantes.
   // Los campos de product.template (como x_featured si se añade ahí) son heredados.
   const productsData = [
-    { name: 'Sueño Cósmico', list_price: 150.00, categ_id: categoryIds['Abstractos'], type:'product', sale_ok: true,  },
-    { name: 'Atardecer en la Montaña', list_price: 220.00, categ_id: categoryIds['Paisajes'], type:'product', sale_ok: true,  },
-    { name: 'Mirada Enigmática', list_price: 300.00, categ_id: categoryIds['Retratos'], type:'product', sale_ok: true,  },
-    { name: 'Ciudad de Neón', list_price: 180.00, categ_id: categoryIds['Arte Digital'], type:'product', sale_ok: true,  },
-    { name: 'Explosión de Color', list_price: 165.00, categ_id: categoryIds['Abstractos'], type:'product', sale_ok: true,  },
-    { name: 'Bosque Sereno', list_price: 250.00, categ_id: categoryIds['Paisajes'], type:'product', sale_ok: true,  },
+    { name: 'Sueño Cósmico', list_price: 150.00, categ_id: categoryIds['Abstractos'], type:'consu', sale_ok: true,  },
+    { name: 'Atardecer en la Montaña', list_price: 220.00, categ_id: categoryIds['Paisajes'], type:'consu', sale_ok: true,  },
+    { name: 'Mirada Enigmática', list_price: 300.00, categ_id: categoryIds['Retratos'], type:'consu', sale_ok: true,  },
+    { name: 'Ciudad de Neón', list_price: 180.00, categ_id: categoryIds['Arte Digital'], type:'consu', sale_ok: true,  },
+    { name: 'Explosión de Color', list_price: 165.00, categ_id: categoryIds['Abstractos'], type:'consu', sale_ok: true,  },
+    { name: 'Bosque Sereno', list_price: 250.00, categ_id: categoryIds['Paisajes'], type:'consu', sale_ok: true,  },
   ];
 
   console.log('🖼️ Creando productos...');
@@ -158,7 +158,7 @@ async function setupTestData(client) {
         delete prodData.categ_id; // O asignar un ID de categoría por defecto si es necesario
     }
 
-    let existingProd = await client.searchRead('product.template', [['name', '=', prodData.name]],  ['id']);
+    let existingProd = await client.searchRead('product.product', [['name', '=', prodData.name]],  ['id']);
     if (existingProd.length > 0) {
       console.log(`♻️ Producto existente: ${prodData.name} (ID: ${existingProd[0].id})`);
       // Opcional: Actualizarlo si es necesario, por ejemplo, para el campo x_featured
