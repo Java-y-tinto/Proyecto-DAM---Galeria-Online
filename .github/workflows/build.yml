@@ -34,6 +34,12 @@ jobs:
     - name: build frontend
       working-directory: frontend
       run: npm run build
+    
+    - name: upload build
+      uses: actions/upload-artifact@v4
+      with:
+        name: build
+        path: frontend/dist/
 
  
   build-middleware:
@@ -51,7 +57,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
+        cache-dependency-path: middleware/package-lock.json
     - name: Install middleware dependencies
       working-directory: middleware
       run: npm ci
@@ -59,6 +65,13 @@ jobs:
     - name: build middleware
       working-directory: middleware
       run: npm run compile
+
+    - name: upload compiled middleware
+      uses: actions/upload-artifact@v4
+      with:
+        name: middleware-compiled
+        path: middleware/dist/
+
   setup-odoo:
     runs-on: ubuntu-22.04
     steps:
@@ -69,7 +82,14 @@ jobs:
     - name: run odoo
       run: docker compose up -d
       working-directory: backend 
-  
+    
+    
+    - name: Wait for Odoo to be ready
+      run: |
+        echo "Waiting for Odoo to start..."
+        timeout 300 bash -c 'until curl -f http://localhost:8069/web/health > /dev/null 2>&1; do sleep 5; done'
+        echo "Odoo is ready!"
+
   deploy-test-middleware:
     runs-on: ubuntu-22.04
     needs: 
@@ -85,13 +105,40 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
-    - name: Install middleware dependencies
+        cache-dependency-path: middleware/package-lock.json
+
+    - name: Download compiled middleware
+      uses: actions/download-artifact@v4
+      with:
+        name: middleware-compiled
+        path: middleware/
+
+    - name: Install production dependencies
       working-directory: middleware
-      run: npm ci
-    - name: build and start middleware
+      run: npm ci --only=production
+
+    - name: start test middleware
       working-directory: middleware
-      run: npm run start
+      run: |
+        node ./dist/index.js &
+        MIDDLEWARE_PID=$!
+        echo "MIDDLEWARE_PID=$MIDDLEWARE_PID" >> $GITHUB_ENV
+        
+        # Wait for middleware to start
+        timeout 60 bash -c 'until curl -f http://localhost:4000/health > /dev/null 2>&1; do sleep 2; done'
+        echo "Middleware is ready!"
+    - name: run tests
+      working-directory: middleware
+      run: |
+        curl -f http://localhost:4000/health && echo "Integration test passed"
+      
+    - name: Stop middleware
+      if: always()
+      working-directory: middleware
+      run: |
+        if [ ! -z "$MIDDLEWARE_PID" ]; then
+          kill $MIDDLEWARE_PID || true
+        fi
 
 concurrency: 
   group: CI-${{ github.ref }}
