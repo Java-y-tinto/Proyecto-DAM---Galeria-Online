@@ -117,7 +117,7 @@ jobs:
       run: |
         echo "🧪 Verificación final..."
         
-        docker compose ps
+        docker ps
         
         # Verificar respuesta web
         curl -s "http://localhost:8069/web/login?db=odoo_test" | grep -q "odoo_test"
