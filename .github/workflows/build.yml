@@ -9,6 +9,10 @@ on:
 env:
   NODE_VERSION: '20'
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test-middleware:
     name: 🧪 Test Middleware + Odoo Integration
