@@ -77,6 +77,23 @@ jobs:
             --db_password=odoo
             
           echo "Base de datos Odoo 'odoo_test' inicializada o la inicialización fue intentada."
+          
+      - name: Probar endpoint JSON-RPC de Odoo con curl
+        run: |
+          echo "Intentando listar bases de datos vía JSON-RPC (no requiere login)..."
+          DB_LIST_RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"call","params":{"service":"db","method":"list_dbs"},"id":123}' \
+            http://localhost:8069/jsonrpc)
+          echo "Respuesta HTTP para list_dbs en /jsonrpc: $DB_LIST_RESPONSE_CODE"
+          if [ "$DB_LIST_RESPONSE_CODE" -ne "200" ]; then
+            echo "Error: El endpoint /jsonrpc no devolvió 200 para list_dbs. Cuerpo de la respuesta:"
+            curl -i -X POST -H "Content-Type: application/json" \
+              -d '{"jsonrpc":"2.0","method":"call","params":{"service":"db","method":"list_dbs"},"id":123}' \
+              http://localhost:8069/jsonrpc
+          else
+            echo "Endpoint /jsonrpc parece funcionar para list_dbs."
+          fi
 
       - name: crear archivo .env
         working-directory: middleware
