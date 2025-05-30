@@ -65,7 +65,7 @@ jobs:
           echo "ID del contenedor Odoo: $ODOO_CONTAINER_ID"
           docker exec "$ODOO_CONTAINER_ID" odoo \
             -d odoo_test \
-            -i base,product,stock \
+            -i base,product,stock,account \
             --without-demo=False \
             --stop-after-init \
             --log-level=info \

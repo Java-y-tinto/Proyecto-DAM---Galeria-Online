@@ -193,7 +193,7 @@ const getUserCartCount = async (uid: number): Promise<number> => {
         const partner_id = await getOdooPartnerId(uid);
         if (!partner_id) return 0;
 
-        count = await odooClient.searchCount(
+        count = await odooClient.searchRead(
             'sale.order.line',
             [
                 ['order_id.partner_id', '=', partner_id],
@@ -210,7 +210,7 @@ const getUserCartCount = async (uid: number): Promise<number> => {
 // ✅ Función para contar productos en carritos
 const getProductInCartsCount = async (productId: number): Promise<number> => {
     try {
-        return await odooClient.searchCount(
+        return await odooClient.searchRead(
             'sale.order.line',
             [
                 ['product_id', '=', productId],
@@ -466,7 +466,7 @@ export const getNewestProducts = async () => {
         console.log('🆕 [getNewestProducts] Iniciando consulta de productos más nuevos...');
         
         // Primero, verificar que tenemos productos
-        const totalProductsCount = await odooClient.searchCount('product.product', []);
+        const totalProductsCount = await odooClient.read('product.product', []);
         console.log(`📊 [getNewestProducts] Total de productos en sistema: ${totalProductsCount}`);
         
         if (totalProductsCount === 0) {
