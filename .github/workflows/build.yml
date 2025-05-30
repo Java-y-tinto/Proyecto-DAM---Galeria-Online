@@ -90,15 +90,6 @@ jobs:
         timeout 300 bash -c 'until curl -f http://localhost:8069/web/health > /dev/null 2>&1; do sleep 5; done'
         echo "Odoo is ready!"
 
-    - name: Wait for Odoo container to be ready
-      run: |
-        echo "⏳ Waiting for Odoo container to start..."
-        timeout 180 bash -c 'until docker ps | grep -q "backend.*odoo.*Up"; do 
-          echo "Container still starting..."; 
-          sleep 5; 
-        done'
-        echo "✅ Odoo container is running!"
-
     - name: Wait for PostgreSQL to be ready
       run: |
         echo "⏳ Waiting for PostgreSQL to be ready..."
