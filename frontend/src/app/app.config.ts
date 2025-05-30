@@ -50,7 +50,7 @@ export const appConfig: ApplicationConfig = {
               console.warn('🔄 Token expirado o inválido, limpiando localStorage...');
               localStorage.removeItem('token');
               
-              // Opcional: redirigir al login
+              // redirigir al login
               if (window.location.pathname !== '/login') {
                 console.log('🔄 Redirigiendo al login...');
                 window.location.href = '/login';

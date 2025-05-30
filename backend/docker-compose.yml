@@ -12,5 +12,7 @@ services:
             - PASSWORD=odoo
         ports:
             - "8069:8069"
+        volumes:
+            - odoo_data:/var/lib/odoo/filestore
         depends_on:
             - db

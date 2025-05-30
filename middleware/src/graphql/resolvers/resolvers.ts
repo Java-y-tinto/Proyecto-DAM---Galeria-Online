@@ -21,7 +21,6 @@ export const resolvers = {
   Query: {
     products: async (_: any, __: any, context: any) => {
       //if (!context.user) throw new Error('No autorizado');
-      console.log('[Resolver products]: Productos vendidos: ', getSoldProducts());
       return await getProducts();
     },
     productsByCategory: async (_: any, { categoryName }: any, context: any) => {
@@ -31,60 +30,60 @@ export const resolvers = {
 
     productById: async (_: any, { id }: { id: string }, context: any) => {
       try {
-        console.log('[Resolver products]: Productos vendidos: ', getSoldProducts());
+        
 
-        console.log(`Resolver: Buscando producto con ID: ${id}`);
+        
         const products = await getProductById(id);
-        console.log(`Resolver: Productos encontrados:`, products);
+        
 
         if (!products || products.length === 0) {
-          console.log(`Resolver: No se encontraron productos`);
+          
           return null;
         }
 
         const product = products[0];
-        console.log(`Resolver: Devolviendo producto:`, product);
+        
         return product;
       } catch (error) {
-        console.error(`Resolver: Error al buscar producto:`, error);
+        
         return null;
       }
     },
     searchProducts: async (_: any, { searchTerm }: { searchTerm: string }, context: any) => {
       try {
-        console.log(`Resolver: Buscando productos con el término de búsqueda: ${searchTerm}`);
+        
         if (!searchTerm || searchTerm.trim().length === 0) {
-          console.log(`Resolver: No se proporcionó un término de búsqueda`);
+          
           return [];
         }
 
         const products = await searchProducts(searchTerm.trim());
-        console.log(`Resolver: Productos encontrados:`, products);
+        
         return products;
       } catch (error) {
-        console.error(`Resolver [BUSQUEDA DE PRODUCTOS]: Error al buscar productos:`, error);
+        
         return [];
       }
     },
     getRelatedProducts: async (_: any, { productId, limit = 4 }: { productId: string, limit?: number }, context: any) => {
       try {
-        console.log(`Resolver: Buscando productos relacionados para ID: ${productId}, límite: ${limit}`);
+        
         const relatedProducts = await getRelatedProducts(productId, limit);
-        console.log(`Resolver: ${relatedProducts.length} productos relacionados encontrados`);
+        
         return relatedProducts;
       } catch (error) {
-        console.error(`Resolver [PRODUCTOS RELACIONADOS]: Error:`, error);
+        
         return [];
       }
     },
     getFeaturedProducts: async (_: any, __: any, context: any) => {
       try {
-        console.log(`Resolver: Buscando productos destacados`);
+        
         const featuredProducts = await getFeaturedProducts();
-        console.log(`Resolver: ${featuredProducts.length} productos destacados encontrados`);
+        
         return featuredProducts;
       } catch (error) {
-        console.error(`Resolver [PRODUCTOS DESTACADOS]: Error:`, error);
+        
         return [];
       }
     },
@@ -96,12 +95,12 @@ export const resolvers = {
     },
      getNewestProducts: async (_: any, __: any, context: any) => {
       try {
-        console.log('Resolver: Obteniendo productos más nuevos...');
+        
         const newestProducts = await getNewestProducts();
-        console.log(`Resolver: ${newestProducts.length} productos más nuevos encontrados`);
+        
         return newestProducts;
       } catch (error) {
-        console.error('Resolver [PRODUCTOS MÁS NUEVOS]: Error:', error);
+        
         return [];
       }
     },
@@ -174,7 +173,7 @@ export const resolvers = {
           message: "OK"
         };
       } catch (error) {
-        console.error('ERROR al conectar/registrar con Odoo:', error);
+        
         return {
           success: false,
           message: `Error de registro: ${error.message || 'Error desconocido'}`,
