@@ -33,6 +33,7 @@ async function waitForOdoo() {
       return;
     } catch (error) {
       attempts++;
+      console.log("ERROR",error)
       console.log(`⏳ Intento ${attempts}/${maxAttempts} - Esperando Odoo...`);
       
       if (attempts >= maxAttempts) {
