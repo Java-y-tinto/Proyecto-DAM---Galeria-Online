@@ -383,8 +383,8 @@ jobs:
         ODOO_BASE_URL: http://localhost
         ODOO_PORT: 8069
         ODOO_DB: postgres
-        ODOO_USERNAME: admin
-        ODOO_PASSWORD: admin
+        ODOO_USERNAME: odoo
+        ODOO_PASSWORD: odoo
         JWT_SECRET: test-jwt-secret-key-for-ci-testing-2024
         JWT_EXPIRES_IN: 2h
       run: |
