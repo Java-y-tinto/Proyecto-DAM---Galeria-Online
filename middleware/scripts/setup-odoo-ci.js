@@ -65,6 +65,7 @@ async function connectToOdoo() {
       client = new OdooJSONRpc(config);
       await client.connect();
       console.log('✅ Conexión exitosa a Odoo y su base de datos.');
+      console.log("Cliente:",client);
       return client;
     } catch (error) {
       attempts++;
@@ -83,39 +84,12 @@ async function connectToOdoo() {
   }
 }
 
-async function createOrUpdateField(client) {
-  // Esta función es un placeholder. La creación/modificación de campos
-  // se debe hacer directamente en Odoo (UI o módulo).
-  // Aquí solo verificamos si el campo x_featured parece existir leyendo un producto.
-  console.log('🔍 Verificando existencia del campo x_featured en product.template...');
-  try {
-    const products = await client.searchRead('product.template', [], {
-      fields: ['id', 'name', 'x_featured'],
-      limit: 1,
-    });
-    if (products.length > 0) {
-      const firstProduct = products[0];
-      if (Object.prototype.hasOwnProperty.call(firstProduct, 'x_featured')) {
-        console.log('✅ El campo x_featured parece existir en product.template.');
-      } else {
-        console.warn('⚠️ El campo x_featured NO fue encontrado en product.template. La creación de productos destacados podría no funcionar como se espera.');
-        console.warn('   Asegúrate de añadir el campo "x_featured" (Booleano) al modelo "product.template" en Odoo.');
-      }
-    } else {
-      console.log('ℹ️ No hay productos para verificar el campo x_featured, se procederá asumiendo que existe si se define.');
-    }
-  } catch (error) {
-    console.warn(`⚠️ Error al intentar verificar el campo x_featured: ${error.message}`);
-    console.warn('   Esto puede indicar que el campo no existe. Procede con precaución.');
-  }
-}
 
 
 async function setupTestData(client) {
   console.log('🎭 Configurando datos de prueba...');
 
   // Paso 1: Crear/Verificar campo x_featured (informativo)
-  await createOrUpdateField(client);
 
   // Paso 2: Crear categorías de productos
   const categoriesData = [
