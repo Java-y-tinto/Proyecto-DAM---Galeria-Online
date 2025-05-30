@@ -176,8 +176,8 @@ async function setupTestData(client) {
     }
   }
 
-  const totalProducts = await client.searchCount('product.product', []);
-  const featuredProducts = await client.searchCount('product.product', [['x_featured', '=', true]]);
+  const totalProducts = await client.read('product.product', []);
+  const featuredProducts = await client.searchRead('product.product', [['x_featured', '=', true]]);
   console.log(`📊 Total de productos en Odoo: ${totalProducts}`);
   console.log(`⭐ Total de productos destacados: ${featuredProducts}`);
 }
