@@ -407,10 +407,10 @@ jobs:
       if: failure()
       run: |
         echo "📋 Logs de PostgreSQL:"
-        docker-compose logs db
+        docker compose logs db
         echo ""
         echo "📋 Logs de Odoo:"
-        docker-compose logs odoo
+        docker compose logs odoo
 
     - name: 🧹 Limpiar servicios
       if: always()
