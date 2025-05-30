@@ -59,6 +59,16 @@ jobs:
     - name: build middleware
       working-directory: middleware
       run: npm run compile
+  setup-odoo:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install docker compose
+      uses: docker/setup-compose-action@v1
+
+    - name: run odoo
+      run: docker compose up -d
+      working-directory: backend 
 concurrency: 
   group: CI-${{ github.ref }}
   cancel-in-progress: true
