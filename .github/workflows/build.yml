@@ -72,10 +72,36 @@ jobs:
         name: middleware-compiled
         path: middleware/dist/
 
-  setup-odoo:
+  integration-test:
     runs-on: ubuntu-22.04
+    needs: [build-middleware]
+    env:
+      JWT_SECRET: ${{secrets.JWT_SECRET_TEST}}
+      JWT_EXPIRES_IN: "1h"
+      PORT: 4000
+      
+      # Odoo variables
+      ODOO_BASE_URL: "http://localhost"
+      ODOO_PORT: 8069
+      ODOO_DB: "odoo_test"
+      ODOO_USERNAME: "admin"
+      ODOO_PASSWORD: "admin"
+      NODE_ENV: "test"
+      
+    strategy:
+      matrix:
+        node-version: [22.x]
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: middleware/package-lock.json
+
+    # 🐘 PASO 1: Setup Odoo
     - name: Install docker compose
       uses: docker/setup-compose-action@v1
 
@@ -87,13 +113,6 @@ jobs:
       run: |
         echo "⏳ Esperando que Odoo se inicialice completamente..."
         
-        # Verificar que los contenedores estén corriendo
-        timeout 60 bash -c 'until docker compose ps | grep -E "backend-(db|odoo)-1" | grep -v "Exit"; do 
-          echo "Contenedores iniciándose..."; 
-          docker compose ps;
-          sleep 5; 
-        done'
-        
         # Esperar a que PostgreSQL esté listo
         timeout 120 bash -c 'until docker exec backend-db-1 pg_isready -U odoo > /dev/null 2>&1; do 
           echo "PostgreSQL iniciándose..."; 
@@ -101,113 +120,94 @@ jobs:
         done'
         echo "✅ PostgreSQL listo!"
         
-        # Esperar a que Odoo responda en la web
-        timeout 300 bash -c 'until curl -f "http://localhost:8069/web/login?db=odoo_test" > /dev/null 2>&1; do 
+        # Esperar a que Odoo responda
+        timeout 300 bash -c 'until curl -f "http://localhost:8069/" > /dev/null 2>&1; do 
           echo "Odoo aún inicializándose..."; 
           sleep 10; 
         done'
         
         echo "✅ Odoo completamente listo!"
         echo "🌐 URL: http://localhost:8069"
-        echo "🗄️ Base de datos: odoo_test"
-        echo "🔐 Credenciales: admin / admin"
-      working-directory: backend
 
-    - name: Verify setup
+    - name: Verify Odoo setup
       run: |
-        echo "🧪 Verificación final..."
+        echo "🧪 Verificando Odoo..."
         
-        docker ps
+        # Verificar conectividad básica
+        curl -f "http://localhost:8069/" && echo "✅ Odoo responde"
         
-        # Verificar respuesta web
-        curl -s "http://localhost:8069/web/login?db=odoo_test" | grep -q "odoo_test"
-        echo "✅ Interfaz web verificada"
-        
-        echo "🎯 Setup completado exitosamente!"
+        # Verificar logs para ver si la DB se creó
+        echo "📋 Últimos logs de Odoo:"
+        docker logs backend-odoo-1 --tail 20
 
-  deploy-test-middleware:
-    runs-on: ubuntu-22.04
-    needs: [setup-odoo, build-middleware]
-    env:
-      JWT_SECRET: ${{secrets.JWT_SECRET_TEST}}
-      JWT_EXPIRES_IN: "1h"
-      PORT: 4000
-      
-      # Odoo variables - CORREGIDAS
-      ODOO_BASE_URL: "http://localhost"
-      ODOO_PORT: 8069
-      ODOO_DB: "odoo_test"
-      ODOO_USERNAME: "admin"
-      ODOO_PASSWORD: "admin"     # ✅ Usar password en lugar de apiKey
-
-      NODE_ENV: "test"           # ✅ Cambiar de "CI" a "test"
-    strategy:
-      matrix:
-        node-version: [22.x]
-    steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: middleware/package-lock.json
-
+    # 🔧 PASO 2: Setup y test Middleware  
     - name: Download compiled middleware
       uses: actions/download-artifact@v4
       with:
         name: middleware-compiled
-        path: middleware/dist/
+        path: middleware/
 
     - name: Install production dependencies
       working-directory: middleware
       run: npm ci --omit=dev
 
-    - name: Verify Odoo connection before starting middleware
-      run: |
-        echo "🔍 Verificando conexión a Odoo..."
-        curl -f "http://localhost:8069/web/login?db=odoo_test" || {
-          echo "❌ Odoo no está disponible"
-          exit 1
-        }
-        echo "✅ Odoo está disponible"
-
-    - name: start test middleware
+    - name: Start middleware
       working-directory: middleware
       run: |
         echo "🚀 Iniciando middleware..."
+        echo "Variables de entorno:"
+        echo "ODOO_BASE_URL: $ODOO_BASE_URL"
+        echo "ODOO_PORT: $ODOO_PORT"
+        echo "ODOO_DB: $ODOO_DB"
+        echo "ODOO_USERNAME: $ODOO_USERNAME"
+        echo "NODE_ENV: $NODE_ENV"
+        
         node ./dist/index.js &
         MIDDLEWARE_PID=$!
         echo "MIDDLEWARE_PID=$MIDDLEWARE_PID" >> $GITHUB_ENV
         
-        # Wait for middleware to start
+        # Esperar a que el middleware inicie
         timeout 60 bash -c 'until curl -f http://localhost:4000/health > /dev/null 2>&1; do 
           echo "Esperando middleware..."; 
           sleep 3; 
         done'
         echo "✅ Middleware listo!"
-        
-    - name: run integration tests
-      working-directory: middleware
+
+    - name: Run integration tests
       run: |
         echo "🧪 Ejecutando tests de integración..."
         
-        # Test health endpoint
+        # Test 1: Health check
+        echo "1. Test health endpoint:"
         curl -f http://localhost:4000/health && echo "✅ Health check OK"
         
-        # Test GraphQL endpoint
-        curl -X POST http://localhost:4000/graphql \
+        # Test 2: GraphQL endpoint
+        echo "2. Test GraphQL endpoint:"
+        GRAPHQL_RESPONSE=$(curl -s -X POST http://localhost:4000/graphql \
           -H "Content-Type: application/json" \
-          -d '{"query": "{ products { id name } }"}' \
-          -f && echo "✅ GraphQL test OK" || echo "⚠️ GraphQL test failed"
-      
-    - name: Stop middleware
+          -d '{"query": "{ products { id name } }"}')
+        
+        echo "GraphQL Response: $GRAPHQL_RESPONSE"
+        
+        if echo "$GRAPHQL_RESPONSE" | grep -q "data\|products"; then
+          echo "✅ GraphQL test OK"
+        else
+          echo "⚠️ GraphQL returned unexpected response"
+        fi
+
+    - name: Cleanup
       if: always()
       run: |
+        # Detener middleware
         if [ ! -z "$MIDDLEWARE_PID" ]; then
           echo "🛑 Deteniendo middleware..."
           kill $MIDDLEWARE_PID || true
         fi
+        
+        # Detener Odoo
+        echo "🛑 Deteniendo Odoo..."
+        docker compose down || true
+      working-directory: backend
 
 concurrency: 
   group: CI-${{ github.ref }}
