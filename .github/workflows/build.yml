@@ -70,6 +70,7 @@ jobs:
             -d odoo_test \
             -i base \
             --without-demo=False \
+            --stop-after-init \
             --log-level=info \
             --db_host=db \
             --db_user=odoo \
@@ -120,7 +121,12 @@ jobs:
           # y el workflow se detendrá, lo cual es correcto.
           timeout 60s bash -c 'until curl -sf http://localhost:4000/health; do echo "Intentando de nuevo en 5s..."; sleep 5; done'
           echo "✅ Middleware está respondiendo en http://localhost:4000/health"
-
+      - name: Comprobar que odoo esta ejecutandose antes del setup
+        run: |
+          echo "Esperando a que Odoo esté disponible en http://localhost:8069..."
+          timeout 60s bash -c 'until curl -sf http://localhost:8069/web/health; do sleep 5; done'
+          echo "Odoo está respondiendo."
+          docker ps
       - name: Ejecutar setup
         working-directory: middleware
         env:
