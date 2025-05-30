@@ -91,9 +91,19 @@ jobs:
           JWT_SECRET=tu_jwt_secret_aqui_para_ci # Asegúrate de añadir un JWT_SECRET
           EOF
           echo ".env file created in middleware directory"
-      - name: ejecutar middleware
+
+      - name: Iniciar middleware en segundo plano # CAMBIO IMPORTANTE AQUÍ
         working-directory: middleware
-        run: npm run start
+        run: npm run start & # <--- Añade el "&" al final
+
+      - name: Esperar a que el middleware se inicie # PASO NUEVO O VERIFICADO
+        run: |
+          echo "Esperando a que el middleware esté disponible en http://localhost:4000/health..."
+          # El siguiente comando intentará conectar durante 60 segundos.
+          # Si el middleware no responde a /health en ese tiempo, el comando fallará (exit 1),
+          # y el workflow se detendrá, lo cual es correcto.
+          timeout 60s bash -c 'until curl -sf http://localhost:4000/health; do echo "Intentando de nuevo en 5s..."; sleep 5; done'
+          echo "✅ Middleware está respondiendo en http://localhost:4000/health"
 
       - name: Ejecutar setup
         working-directory: middleware
