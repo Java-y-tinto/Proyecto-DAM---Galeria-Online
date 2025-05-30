@@ -76,8 +76,8 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-middleware]
     env:
-      # CORREGIDO: Usar el nombre correcto del secret
-      JWT_SECRET: ${{ secrets.JWT_SECRET_TEST }}
+      # No pasa nada si se expone.Es solo para testing. 
+      JWT_SECRET: "174c7356d18aeea2b797abfc2cc9ca9feae90b91d4664c7786a22b0f2d0e2202ac2238c7261595a7c32f9a4da7bf0b645e1b6c15a96c0c037f0b25c60cd8167f9309f5889c8799f01c001202eaee161e474665e1d569d127b0ee61049c6a9b7695325172006149a950ef4e540d243096630869454a5bd4c9524bbac99b832b9d2094c3361cb602a2d90361827c5f6398aff28a13c4880ce5a9d53304775acc52fc7be759a5f539b2c5b3dcbe1d420fe5aefc523fcfb8895a2dbabab60051a736d3587253afe406460098a61386a96d789d64dd6c9bb5e8a5a87dde7e5634419faa0a61acfdacc077119454629bf371150e867e5d262ba1783f4f5541891a5b2d"
       JWT_EXPIRES_IN: "1h"
       PORT: 4000
       
