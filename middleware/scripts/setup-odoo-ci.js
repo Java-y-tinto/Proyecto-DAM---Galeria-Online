@@ -9,7 +9,7 @@ const config = {
   port: Number(process.env.ODOO_PORT) || 8069,
   db: process.env.ODOO_DB || 'postgres',
   username: process.env.ODOO_USERNAME || 'odoo',
-  password: process.env.ODOO_PASSWORD || 'odoo'
+  password: process.env.ODOO_PASSWORD || 'admin'
 };
 
 console.log('🔧 Configuración de Odoo:', {
