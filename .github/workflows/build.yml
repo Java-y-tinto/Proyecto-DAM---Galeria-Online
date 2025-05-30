@@ -77,16 +77,7 @@ jobs:
             --db_password=odoo
             
           echo "Base de datos Odoo 'odoo_test' inicializada o la inicialización fue intentada."
-      - name: ejecutar middleware
-        working-directory: middleware
-        run: npm run start
 
-      - name: Ejecutar setup
-        working-directory: middleware
-        env:
-          MIDDLEWARE_URL: http://localhost:4000/graphql
-        run: npm run setup:ci
-        
       - name: crear archivo .env
         working-directory: middleware
         run: |
@@ -97,6 +88,17 @@ jobs:
           ODOO_USERNAME=admin
           ODOO_PASSWORD=admin
           EOF
+      - name: ejecutar middleware
+        working-directory: middleware
+        run: npm run start
+
+      - name: Ejecutar setup
+        working-directory: middleware
+        env:
+          MIDDLEWARE_URL: http://localhost:4000/graphql
+        run: npm run setup:ci
+        
+    
           
       - name: Ejecutar test de integracion
         working-directory: middleware
