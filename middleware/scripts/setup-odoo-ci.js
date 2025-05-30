@@ -24,7 +24,7 @@ console.log('🔧 Configuración de Odoo:', {
 async function checkOdooAvailability() {
   console.log('🔍 Verificando disponibilidad de Odoo...');
   
-  const maxAttempts = 30; // 5 minutos máximo (10 segundos * 30)
+  const maxAttempts = 5; // 5 minutos máximo (10 segundos * 30)
   let attempts = 0;
   
   while (attempts < maxAttempts) {
