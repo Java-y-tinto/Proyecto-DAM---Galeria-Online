@@ -17,7 +17,8 @@
     "lint:fix": "eslint src/**/*.ts --fix",
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run compile",
-    "build:prod": "npm run clean && tsc --build --force"
+    "build:prod": "npm run clean && tsc --build --force",
+    "setup:ci": "node scripts/setup-odoo-ci.js"
   },
   "keywords": [],
   "author": "",
@@ -49,7 +50,6 @@
     "@types/lru-cache": "^7.10.9",
     "@types/node": "^22.15.3",
     "@vitest/ui": "^3.1.4",
-    "axios": "^1.9.0",
     "eslint": "^9.27.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.33.0",
