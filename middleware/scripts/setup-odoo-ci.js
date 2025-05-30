@@ -108,7 +108,7 @@ async function createOrUpdateField(client) {
 
 const getOdooPartnerId = async (uid) => {
     try {
-        const user = await odooClient.searchRead(
+        const user = await client.searchRead(
             'res.users',
             [['id', '=', uid]],
             ['partner_id']
