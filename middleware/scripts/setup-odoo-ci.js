@@ -160,7 +160,26 @@ async function setupTestData(client) {
   console.log(`📊 Total de productos en Odoo: ${totalProducts}`);
   console.log(`⭐ Total de productos destacados: ${featuredProducts}`);
 }
+async function simpleAuthenticatedCall(client) {
+  console.log('🧪 Intentando llamada autenticada simple: leer nombre de usuario actual...');
+  try {
+    const user_info = await client.read('res.users', [client.uid], ['name']);
+    // client.uid debería estar poblado después de una conexión exitosa
+    // si no lo está, usa el uid que ves en el log de auth_response (ej. 2)
+    // const uid_from_log = 2;
+    // const user_info = await client.read('res.users', [uid_from_log], ['name']);
 
+    console.log('✅ Información del usuario obtenida:', user_info);
+    return true;
+  } catch (error) {
+    console.error('❌ Error en llamada autenticada simple:', error.message);
+    if (error.data && error.data.debug) {
+        console.error('🐛 Debug Info Odoo:', error.data.debug);
+    }
+    // Lanza el error para que main lo capture si es crítico
+    throw error;
+  }
+}
 async function main() {
   try {
     console.log('🚀 Iniciando script de configuración de datos de prueba para Odoo...');
