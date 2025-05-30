@@ -90,11 +90,53 @@ jobs:
         timeout 300 bash -c 'until curl -f http://localhost:8069/web/health > /dev/null 2>&1; do sleep 5; done'
         echo "Odoo is ready!"
 
+    - name: Create test database for testing
+      run: |
+        echo "🗄️ Creating test database..."
+        
+        # Crear base de datos usando la API de Odoo
+        curl -X POST http://localhost:8069/web/database/create \
+          -H "Content-Type: application/json" \
+          -d '{
+            "jsonrpc": "2.0",
+            "method": "call",
+            "params": {
+              "master_pwd": "admin",
+              "name": "odoo_test",
+              "login": "admin",
+              "password": "admin",
+              "lang": "en_US",
+              "country_code": "US",
+              "phone": ""
+            },
+            "id": 1
+          }' || echo "Database might already exist"
+
+        # Verificar que la DB se creó correctamente
+        timeout 60 bash -c 'until curl -f "http://localhost:8069/web/login?db=odoo_test" > /dev/null 2>&1; do 
+          echo "Waiting for database to be ready..."; 
+          sleep 5; 
+        done'
+        
+        echo "✅ Database 'odoo_test' created with admin user!"
+        echo "🔐 Login: admin / Password: admin"
+
   deploy-test-middleware:
     runs-on: ubuntu-22.04
-    needs: 
-      - setup-odoo
-      - build-middleware
+    needs: [setup-odoo, build-middleware]
+    env:
+      JWT_SECRET: ${{secrets.JWT_SECRET_TEST}}
+      JWT_EXPIRES_IN: "1h"
+      PORT: 4000
+      
+      # Odoo variables
+      ODOO_BASE_URL: "http://localhost"
+      ODOO_PORT: 8069
+      ODOO_DB: "odoo_test"
+      ODOO_USERNAME: "admin"
+      ODOO_PASSWORD: "admin"
+
+      NODE_ENV: "test"
     strategy:
       matrix:
         node-version: [22.x]
@@ -115,7 +157,7 @@ jobs:
 
     - name: Install production dependencies
       working-directory: middleware
-      run: npm ci --only=production
+      run: npm ci --omit=dev
 
     - name: start test middleware
       working-directory: middleware

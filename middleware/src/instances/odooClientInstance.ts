@@ -77,25 +77,50 @@ const userCartCache = new LRUCache<number, number>({
 });
 
 
-const odooClient = new OdooJSONRpc({
-    baseUrl: process.env.ODOO_BASE_URL,
-    port: Number(process.env.ODOO_PORT),
-    db: process.env.ODOO_DB,
-    username: process.env.ODOO_USERNAME,
-    apiKey: process.env.ODOO_API_KEY,
-});
+const getOdooConfig = () => {
+    const baseConfig = {
+        baseUrl: process.env.ODOO_BASE_URL,
+        port: Number(process.env.ODOO_PORT),
+        db: process.env.ODOO_DB,
+        username: process.env.ODOO_USERNAME,
+    };
 
+    // En CI/testing usar contraseña, en producción usar API Key
+    if (process.env.NODE_ENV === 'test' || process.env.CI) {
+        console.log('🧪 Modo testing: usando autenticación por contraseña');
+        return {
+            ...baseConfig,
+            password: process.env.ODOO_PASSWORD
+        };
+    } else {
+        console.log('🔐 Modo producción: usando autenticación por API Key');
+        return {
+            ...baseConfig,
+            apiKey: process.env.ODOO_API_KEY
+        };
+    }
+};
 
+const odooClient = new OdooJSONRpc(getOdooConfig());
 
-
-// ✅ Conexión a Odoo
 export const connectOdoo = async () => {
     try {
-        
-        const versionInfo = await odooClient;
-        
+        const config = getOdooConfig();
+        console.log('🔌 Conectando a Odoo...');
+        console.log(`📍 URL: ${config.baseUrl}:${config.port}`);
+        console.log(`🗄️ DB: ${config.db}`);
+        console.log(`👤 Usuario: ${config.username}`);
+        if ('apiKey' in config){
+            console.log(`🔐 Método:API Key`);
+        } else{
+            console.log(`🔐 Método:Password`);
+        }
+        await odooClient.connect();
+        console.log('✅ Conexión a Odoo exitosa');
     } catch (error) {
-        
+        console.error('❌ ERROR al conectar con Odoo:', error);
+        console.error('💡 Verifica que Odoo esté corriendo y las credenciales sean correctas');
+        throw error;
     }
 };
 
@@ -104,7 +129,7 @@ const getProductStatus = async (productId: number) => {
     let status = productCache.get(productId);
     
     if (!status) {
-        
+        console.log(`📊 Cache miss para producto ${productId}`);
         
         const [isSold, inCartsCount] = await Promise.all([
             isProductSold(productId),
@@ -114,7 +139,7 @@ const getProductStatus = async (productId: number) => {
         status = { inCarts: inCartsCount, isSold };
         productCache.set(productId, status);
         
-        
+        console.log(`💾 Producto ${productId} añadido al cache: ${JSON.stringify(status)}`);
     }
     
     return status;
@@ -153,7 +178,7 @@ const getProductInCartsCount = async (productId: number): Promise<number> => {
             ]
         ) || 0;
     } catch (error) {
-        
+        console.error('❌ Error contando carritos:', error);
         return 0;
     }
 };
@@ -172,11 +197,11 @@ export const getProducts = async () => {
             !soldProductIds.includes(product.id)
         );
         
-        
+        console.log(`📦 Total productos: ${productsData.length}, Disponibles: ${availableProducts.length}, Vendidos: ${soldProductIds.length}`);
         
         return availableProducts;
     } catch (error) {
-        
+        console.error('❌ Error en getProducts:', error);
         return [];
     }
 };
@@ -184,13 +209,13 @@ export const getProducts = async () => {
 // ✅ Obtener producto por ID (con verificación de vendido)
 export const getProductById = async (id: string) => {
     try {
-        
+        console.log(`🔍 Buscando producto con ID: ${id}`);
         
         const productIdNumber = parseInt(id);
         const isSold = await isProductSold(productIdNumber);
         
         if (isSold) {
-            
+            console.log(`❌ Producto ${id} está vendido - no disponible`);
             return null;
         }
         
@@ -201,12 +226,12 @@ export const getProductById = async (id: string) => {
         );
         
         if (!products || products.length === 0) {
-            
+            console.log(`❌ Producto ${id} no encontrado`);
             return null;
         }
         
         const product = products[0];
-        
+        console.log(`✅ Producto ${id} disponible:`, product.name);
         
         // Obtener atributos del producto
         if (product.product_tmpl_id) {
@@ -260,7 +285,7 @@ export const getProductById = async (id: string) => {
         
         return [product];
     } catch (error) {
-        
+        console.error("❌ Error en getProductById:", error);
         throw error;
     }
 };
@@ -339,12 +364,12 @@ export const getProductsByCategory = async (categoryName: string) => {
             !soldProductIds.includes(product.id)
         );
         
-        
+        console.log(`📂 Categoría "${categoryName}": ${products.length} total, ${availableProducts.length} disponibles`);
         
         return availableProducts;
         
     } catch (error) {
-        
+        console.error("❌ Error en getProductsByCategory:", error);
         return [];
     }
 };
@@ -391,14 +416,14 @@ export const getFeaturedProducts = async () => {
         
         return enrichedProducts;
     } catch (error) {
-        
+        console.error("❌ Error en getFeaturedProducts:", error);
         return [];
     }
 }
 // ✅ Obtener productos más nuevos (por fecha de creación, excluyendo los vendidos)
 export const getNewestProducts = async () => {
     try {
-        
+        console.log('🆕 Obteniendo productos más nuevos...');
         
         const products = await odooClient.searchRead(
             'product.product',
@@ -418,7 +443,7 @@ export const getNewestProducts = async () => {
         const newestProducts = availableProducts.slice(0, 8);
         
         if (newestProducts.length === 0) {
-            
+            console.log('⚠️ No hay productos nuevos disponibles');
             return [];
         }
         
@@ -450,12 +475,12 @@ export const getNewestProducts = async () => {
                 : 'Sin categoría'
         }));
 
-        
-        
+        console.log(`✅ Productos más nuevos obtenidos: ${enrichedProducts.length}`);
+        console.log(`📅 Fechas: desde ${enrichedProducts[enrichedProducts.length - 1]?.create_date} hasta ${enrichedProducts[0]?.create_date}`);
         
         return enrichedProducts;
     } catch (error) {
-        
+        console.error("❌ Error en getNewestProducts:", error);
         return [];
     }
 };
@@ -474,7 +499,7 @@ export const getOdooPartnerId = async (uid: number) => {
         }
         return null;
     } catch (error) {
-        
+        console.error('❌ Error obteniendo partner ID:', error);
         return null;
     }
 };
@@ -554,7 +579,7 @@ export const addToCart = async (uid: number, productId: number): Promise<CartOpe
             ? ` ⚠️ ${totalInterested} personas interesadas. ¡Completa tu compra!`
             : '';
 
-        
+        console.log(`✅ Usuario ${uid} añadió producto ${productId} al carrito. Competencia: ${productStatus.inCarts}`);
 
         return {
             success: true,
@@ -564,7 +589,7 @@ export const addToCart = async (uid: number, productId: number): Promise<CartOpe
         };
 
     } catch (error) {
-        
+        console.error('❌ Error al añadir al carrito:', error);
         return { success: false, message: 'Error al añadir al carrito' };
     }
 };
@@ -601,18 +626,18 @@ export const removeFromCart = async (uid: number, lineId: number): Promise<CartO
         }
 
         // Eliminar línea
-        
+        console.log(`🗑️ Eliminando línea ${lineId} del carrito`);
         await odooClient.delete('sale.order.line', lineId);
 
         // Invalidar caches
         productCache.delete(productId);
         userCartCache.delete(uid);
 
-        
+        console.log(`✅ Línea ${lineId} eliminada exitosamente`);
         return { success: true, message: 'Producto eliminado del carrito' };
         
     } catch (error) {
-        
+        console.error('❌ Error al eliminar del carrito:', error);
         return { success: false, message: 'Error al eliminar del carrito' };
     }
 };
@@ -654,7 +679,7 @@ export const clearCart = async (uid: number): Promise<CartOperationResult> => {
 
         return { success: true, message: 'Carrito vaciado' };
     } catch (error) {
-        
+        console.error('❌ Error al vaciar el carrito:', error);
         return { success: false, message: 'Error al vaciar el carrito' };
     }
 };
@@ -697,7 +722,7 @@ export const getUserCart = async (uid: number): Promise<Cart | null> => {
             lines: enrichedLines,
         };
     } catch (error) {
-        
+        console.error('❌ Error obteniendo carrito:', error);
         return null;
     }
 };
@@ -712,7 +737,7 @@ export const findUserbyEmail = async (email: string) => {
         );
         return users.length > 0 ? users : null;
     } catch (error) {
-        
+        console.error('❌ Error buscando usuario por email:', error);
         return null;
     }
 };
@@ -730,7 +755,7 @@ export const createUserClient = async (username: string, password: string) => {
         const client = new OdooJSONRpc(config);
         return client;
     } catch (error) {
-        
+        console.error('❌ Error creando cliente de usuario:', error);
         return null;
     }
 };
@@ -738,7 +763,7 @@ export const createUserClient = async (username: string, password: string) => {
 // ✅ Obtener productos vendidos
 export const getSoldProducts = async (): Promise<number[]> => {
     try {
-        
+        console.log('🔍 Consultando productos vendidos...');
         
         const soldOrderLines = await odooClient.searchRead(
             'sale.order.line',
@@ -754,11 +779,11 @@ export const getSoldProducts = async (): Promise<number[]> => {
                 .filter(id => id)
         )];
         
-        
+        console.log(`✅ Encontrados ${soldProductIds.length} productos vendidos`);
         return soldProductIds as number[];
         
     } catch (error) {
-        
+        console.error('❌ Error consultando productos vendidos:', error);
         return [];
     }
 };
@@ -776,11 +801,11 @@ export const isProductSold = async (productId: number): Promise<boolean> => {
         );
         
         const isSold = soldOrderLines.length > 0;
-        
+        console.log(`🔍 Producto ${productId} ${isSold ? 'ESTÁ' : 'NO está'} vendido`);
         return isSold;
         
     } catch (error) {
-        
+        console.error(`❌ Error verificando si producto ${productId} está vendido:`, error);
         return false;
     }
 };
@@ -806,7 +831,7 @@ export const getCacheStats = () => {
 // ✅ Buscar productos por nombre (filtrados por vendidos)
 export const searchProducts = async (searchTerm: string) => {
     try {
-        
+        console.log(`🔍 Buscando productos con término: "${searchTerm}"`);
         
         // Buscar productos cuyo nombre contenga el término de búsqueda (case insensitive)
         const productsData = await odooClient.searchRead(
@@ -821,35 +846,35 @@ export const searchProducts = async (searchTerm: string) => {
             !soldProductIds.includes(product.id)
         );
         
-        
+        console.log(`🔍 Búsqueda "${searchTerm}": ${productsData.length} encontrados, ${availableProducts.length} disponibles, ${productsData.length - availableProducts.length} vendidos`);
         
         return availableProducts;
         
     } catch (error) {
-        
+        console.error('❌ Error al buscar productos:', error);
         return [];
     }
 };
 
 export const getRelatedProducts = async (productId: string, limit: number = 4) => {
     try {
-        
+        console.log(`🔍 Buscando productos relacionados para ID: ${productId}`);
         
         // 1. Obtener el producto base
         const baseProducts = await getProductById(productId);
         if (!baseProducts || baseProducts.length === 0) {
-            
+            console.log('❌ Producto base no encontrado');
             return [];
         }
         
         const baseProduct = baseProducts[0];
-        
+        console.log(`📦 Producto base: ${baseProduct.name}`);
         
         let relatedProducts = [];
         
         // 2. Si el producto tiene atributos (estilo, medidas), buscar por similitud
         if (baseProduct.attributes && baseProduct.attributes.length > 0) {
-            
+            console.log(`🎨 Buscando por atributos similares...`);
             
             // Obtener IDs de valores de atributos del producto base
             const baseAttributeValues = baseProduct.attributes.flatMap(attr => 
@@ -890,7 +915,7 @@ export const getRelatedProducts = async (productId: string, limit: number = 4) =
         
         // 3. Si no encontramos suficientes por atributos, buscar por categoría
         if (relatedProducts.length < limit && baseProduct.categ_id) {
-            
+            console.log(`📂 Complementando con productos de la misma categoría...`);
             
             const categoryId = baseProduct.categ_id[0];
             const categoryProducts = await odooClient.searchRead(
@@ -919,11 +944,11 @@ export const getRelatedProducts = async (productId: string, limit: number = 4) =
         // 5. Limitar resultados
         const finalResults = availableRelatedProducts.slice(0, limit);
         
-        
+        console.log(`✅ Encontrados ${finalResults.length} productos relacionados disponibles`);
         return finalResults;
         
     } catch (error) {
-        
+        console.error('❌ Error obteniendo productos relacionados:', error);
         return [];
     }
 };
