@@ -69,6 +69,30 @@ jobs:
     - name: run odoo
       run: docker compose up -d
       working-directory: backend 
+  
+  deploy-test-middleware:
+    runs-on: ubuntu-22.04
+    needs: 
+      - setup-odoo
+      - build-middleware
+    strategy:
+      matrix:
+        node-version: [22.x]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    - name: Install middleware dependencies
+      working-directory: middleware
+      run: npm ci
+    - name: build and start middleware
+      working-directory: middleware
+      run: npm run start
+
 concurrency: 
   group: CI-${{ github.ref }}
   cancel-in-progress: true
