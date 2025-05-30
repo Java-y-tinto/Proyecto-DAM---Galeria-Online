@@ -1,7 +1,6 @@
 // Fichero: setupOdooTestData.js
 import OdooModule from '@fernandoslim/odoo-jsonrpc';
 import dotenv from 'dotenv';
-
 // Añadir fetch polyfill para Node.js si no está disponible globalmente
 if (typeof fetch === 'undefined') {
   global.fetch = async (url, options) => {
@@ -107,6 +106,23 @@ async function createOrUpdateField(client) {
   }
 }
 
+const getOdooPartnerId = async (uid) => {
+    try {
+        const user = await odooClient.searchRead(
+            'res.users',
+            [['id', '=', uid]],
+            ['partner_id']
+        );
+        
+        if (user.length > 0) {
+            return user[0].partner_id[0];
+        }
+        return null;
+    } catch (error) {
+        console.error('❌ Error obteniendo partner ID:', error);
+        return null;
+    }
+};
 async function setupTestData(client) {
   console.log('🎭 Configurando datos de prueba...');
 
@@ -174,6 +190,15 @@ async function setupTestData(client) {
          }
       }
     }
+     try {
+          const orderId = await odooClient.create('sale.order', {
+            partner_id: getOdooPartnerId(2),
+            state: 'draft',
+          });
+          console.log("Carrito vacio creado");
+        } catch (error) {
+          console.error(`❌ Error creando carrito vacio: ${error.message}`);
+        }
   }
 
   const totalProducts = await client.read('product.product', []);
