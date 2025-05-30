@@ -123,7 +123,7 @@ async function setupTestData(client) {
 
   console.log('📂 Creando categorías...');
   for (const catData of categoriesData) {
-    let existingCat = await client.searchRead('product.category', [['name', '=', catData.name]], { fields: ['id'], limit: 1 });
+    let existingCat = await client.searchRead('product.category', [['name', '=', catData.name]], ['id']);
     if (existingCat.length > 0) {
       categoryIds[catData.name] = existingCat[0].id;
       console.log(`♻️ Categoría existente: ${catData.name} (ID: ${categoryIds[catData.name]})`);
