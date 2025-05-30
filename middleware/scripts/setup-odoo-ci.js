@@ -106,7 +106,7 @@ async function createOrUpdateField(client) {
   }
 }
 
-const getOdooPartnerId = async (uid) => {
+const getOdooPartnerId = async (client,uid) => {
     try {
         const user = await client.searchRead(
             'res.users',
@@ -192,7 +192,7 @@ async function setupTestData(client) {
     }
      try {
           const orderId = await client.create('sale.order', {
-            partner_id: getOdooPartnerId(2),
+            partner_id: getOdooPartnerId(client,2),
             state: 'draft',
           });
           console.log("Carrito vacio creado");
