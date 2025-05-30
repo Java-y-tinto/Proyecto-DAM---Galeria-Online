@@ -14,11 +14,11 @@ jobs:
       db:
         image: postgres:15
         env:
-          POSTGRES_DB: postgres # Base de datos inicial que PostgreSQL crea
+          POSTGRES_DB: postgres
           POSTGRES_USER: odoo
           POSTGRES_PASSWORD: odoo
         ports:
-          - 5432:5432 # Expone el puerto de PostgreSQL al host del runner (opcional si solo Odoo necesita acceso)
+          - 5432:5432
         options: >-
           --health-cmd="pg_isready -U odoo"
           --health-interval=10s
@@ -27,53 +27,53 @@ jobs:
       odoo:
         image: odoo:18.0
         ports:
-          - 8069:8069 # Expone el puerto de Odoo al host del runner
+          - 8069:8069
         env:
-          HOST: db          # Nombre del servicio PostgreSQL, accesible en la red interna de Docker
-          USER: odoo        # Usuario de PostgreSQL para Odoo
-          PASSWORD: odoo    # Contraseña de PostgreSQL para Odoo
-          # DB_NAME: odoo_test # Opcional: Algunas imágenes de Odoo podrían usar esto para la creación automática de DB
-                             # pero tu comando de inicialización es más explícito.
+          HOST: db
+          USER: odoo
+          PASSWORD: odoo
+          # Odoo intentará conectarse a una base de datos 'odoo' por defecto.
+          # Si quieres que se conecte a 'postgres' inicialmente, podrías añadir:
+          # DB_NAME: postgres 
+          # Pero para este flujo, no es estrictamente necesario ya que creamos 'odoo_test' explícitamente.
+          
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Mostrar contenedores en ejecución (depuración)
         run: docker ps -a
-        # Este paso es útil para verificar que los servicios se han iniciado como esperas.
 
       - name: Instalar dependencias middleware
-        if: ${{ always() }} # Opcional: Ejecutar incluso si pasos anteriores fallan, si es necesario para limpiar o reportar
-        working-directory: middleware # Asegúrate que este directorio existe en tu repositorio
+        working-directory: middleware 
         run: npm ci --omit=dev
 
       - name: Compilar middleware
         working-directory: middleware
-        run: npm run compile # Asegúrate que el script 'compile' está definido en tu package.json
+        run: npm run compile
 
       - name: Verificar que Odoo está corriendo
         run: |
           echo "Esperando a que Odoo esté disponible en http://localhost:8069..."
           timeout 60s bash -c 'until curl -sf http://localhost:8069/web/health; do sleep 5; done'
           echo "Odoo está respondiendo."
-        # Este paso es una comprobación de salud para asegurar que Odoo está listo
-        # antes de intentar inicializar la base de datos.
-        # El 'timeout' evita que espere indefinidamente.
-        # '-f' en curl hace que falle silenciosamente en errores HTTP y devuelva un código de salida > 0.
-        # '-s' es para modo silencioso.
 
       - name: Inicializar base de datos Odoo con datos demo
         env:
           ODOO_CONTAINER_ID: ${{ job.services.odoo.id }}
         run: |
           echo "ID del contenedor Odoo: $ODOO_CONTAINER_ID"
+          
+          # A continuación, se ejecuta el comando 'odoo' (odoo-bin) dentro del contenedor
+          # para inicializar la base de datos 'odoo_test'.
           docker exec "$ODOO_CONTAINER_ID" odoo \
-            -d odoo_test \            # Nombre de la base de datos a crear/usar
-            -i base \                 # Módulos a instalar/actualizar (base es el mínimo)
-            --without-demo=False \    # Cargar datos de demostración
-            --stop-after-init \       # Detener Odoo después de la inicialización (el proceso de 'odoo', no el contenedor)
-            --log-level=info \        # Nivel de logging
-            --db_host=db \            # Asegurar que usa el servicio 'db'
+            -d odoo_test \
+            -i base \
+            --without-demo=False \
+            --stop-after-init \
+            --log-level=info \
+            --db_host=db \
             --db_user=odoo \
             --db_password=odoo
-          echo "Base de datos Odoo 'odoo_test' inicializada."
+            
+          echo "Base de datos Odoo 'odoo_test' inicializada o la inicialización fue intentada."
