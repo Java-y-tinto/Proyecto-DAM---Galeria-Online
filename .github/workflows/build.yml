@@ -53,5 +53,15 @@ jobs:
       
       - name: Verificar que odoo esta corriendo
         run: curl -f http://localhost:8069/web/health
+      
+      - name: Inicializar base de datos Odoo con datos demo
+        run: |
+         docker exec $(docker ps -qf "ancestor=odoo:18.0") \
+          odoo -d odoo_test \
+           -i base \
+          --without-demo=False \
+          --stop-after-init \
+          --log-level=info
+        
      
     
