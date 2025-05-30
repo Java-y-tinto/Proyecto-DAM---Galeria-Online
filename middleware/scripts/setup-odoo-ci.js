@@ -84,7 +84,30 @@ async function connectToOdoo() {
   }
 }
 
-
+async function createOrUpdateField(client) {
+  console.log('🔍 Verificando la capacidad de leer product.template (sin campos custom)...');
+  try {
+    const products = await client.searchRead(
+      'product.template', // Modelo estándar
+      [],                 // Dominio vacío (traer cualquiera)
+      {
+        fields: ['id', 'name'], // Solo campos estándar que seguro existen
+        limit: 1
+      }
+    );
+    console.log('✅ Lectura de product.template exitosa (sin campos custom):', products);
+    if (products.length === 0) {
+      console.log('ℹ️ No se encontraron product.template, pero la llamada fue exitosa.');
+    }
+  } catch (error) {
+    console.error(`❌ Error al intentar leer product.template (sin campos custom): ${error.message}`);
+    if (error.message && error.message.includes('404')) {
+        console.error('   ↪️ Esto es muy inesperado. searchRead de un modelo estándar con campos estándar no debería dar 404.');
+    }
+    // Para diagnóstico, vamos a relanzar el error aquí para detener el script si falla.
+    throw error;
+  }
+}
 
 async function setupTestData(client) {
   console.log('🎭 Configurando datos de prueba...');
@@ -163,21 +186,31 @@ async function setupTestData(client) {
 async function simpleAuthenticatedCall(client) {
   console.log('🧪 Intentando llamada autenticada simple: leer nombre de usuario actual...');
   try {
-    const user_info = await client.read('res.users', [client.uid], ['name']);
-    // client.uid debería estar poblado después de una conexión exitosa
-    // si no lo está, usa el uid que ves en el log de auth_response (ej. 2)
-    // const uid_from_log = 2;
-    // const user_info = await client.read('res.users', [uid_from_log], ['name']);
+    const loggedInUid = client.auth_response?.uid; // Usar el UID del auth_response
+    console.log(`ℹ️ Usando UID: ${loggedInUid} para la llamada read.`);
 
-    console.log('✅ Información del usuario obtenida:', user_info);
+    if (!loggedInUid) {
+      console.error('❌ No se pudo obtener un UID válido desde auth_response.');
+      throw new Error('UID no disponible para la llamada read.');
+    }
+
+    // La firma de read es: read(model, ids, fields = [], kwargs = {})
+    const userInfo = await client.read('res.users', [loggedInUid], ['name', 'login']); 
+    
+    console.log('✅ Información del usuario obtenida:', userInfo);
+    if (userInfo && userInfo.length > 0 && userInfo[0].id === loggedInUid) {
+      console.log(`✅ Lectura de usuario ${userInfo[0].login} (ID: ${userInfo[0].id}) exitosa.`);
+    } else {
+      // Esto es una advertencia, no necesariamente un error fatal para la conexión.
+      console.warn('⚠️ La lectura del usuario devolvió datos inesperados o vacíos. Respuesta:', userInfo);
+    }
     return true;
   } catch (error) {
     console.error('❌ Error en llamada autenticada simple:', error.message);
     if (error.data && error.data.debug) {
         console.error('🐛 Debug Info Odoo:', error.data.debug);
     }
-    // Lanza el error para que main lo capture si es crítico
-    throw error;
+    throw error; // Relanzar para que el main() lo capture si es crítico
   }
 }
 async function main() {
@@ -188,6 +221,7 @@ async function main() {
     await checkOdooAvailability();
     const client = await connectToOdoo();
    // await setupTestData(client);
+   await createOrUpdateField(client);
     await simpleAuthenticatedCall(client);
     console.log('🎉 Configuración de datos de prueba completada exitosamente!');
   } catch (error) {
