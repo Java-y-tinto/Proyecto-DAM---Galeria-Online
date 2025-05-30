@@ -463,64 +463,96 @@ export const getFeaturedProducts = async () => {
 // ✅ Obtener productos más nuevos (por fecha de creación, excluyendo los vendidos)
 export const getNewestProducts = async () => {
     try {
-        console.log('🆕 Obteniendo productos más nuevos...');
+        console.log('🆕 [getNewestProducts] Iniciando consulta de productos más nuevos...');
         
+        // Primero, verificar que tenemos productos
+        const totalProductsCount = await odooClient.searchCount('product.product', []);
+        console.log(`📊 [getNewestProducts] Total de productos en sistema: ${totalProductsCount}`);
+        
+        if (totalProductsCount === 0) {
+            console.log('⚠️ [getNewestProducts] No hay productos en el sistema');
+            return [];
+        }
+        
+        // Obtener productos ordenados por fecha de creación
+        console.log('🔍 [getNewestProducts] Consultando productos ordenados por fecha...');
         const products = await odooClient.searchRead(
             'product.product',
             [], // Sin filtros específicos, queremos todos los productos
             ['id', 'name', 'list_price', 'image_1920', 'image_512', 'categ_id', 'create_date'],
             0, // offset
-            20, // límite mayor por si algunos están vendidos
-            'create_date DESC' // ordenar por fecha de creación descendente (más nuevos primero)
+            50, // límite mayor para asegurar que tengamos suficientes después de filtrar vendidos
+            'create_date DESC' // ordenar por fecha de creación descendente
         );
         
+        console.log(`📦 [getNewestProducts] Productos obtenidos de Odoo: ${products.length}`);
+        if (products.length > 0) {
+            console.log(`📅 [getNewestProducts] Rango de fechas: ${products[products.length - 1]?.create_date} hasta ${products[0]?.create_date}`);
+        }
+        
+        // Filtrar productos vendidos
         const soldProductIds = await getSoldProducts();
+        console.log(`🚫 [getNewestProducts] Productos vendidos: ${soldProductIds.length}`);
+        
         const availableProducts = products.filter(product => 
             !soldProductIds.includes(product.id)
         );
+        
+        console.log(`✅ [getNewestProducts] Productos disponibles después de filtrar: ${availableProducts.length}`);
         
         // Limitar a los 8 más nuevos
         const newestProducts = availableProducts.slice(0, 8);
         
         if (newestProducts.length === 0) {
-            console.log('⚠️ No hay productos nuevos disponibles');
+            console.log('⚠️ [getNewestProducts] No hay productos nuevos disponibles después de filtrar vendidos');
+            
+            // Para debugging: mostrar algunos productos sin filtrar
+            if (products.length > 0) {
+                console.log('🔍 [getNewestProducts] DEBUG - Primeros 3 productos sin filtrar:', 
+                    products.slice(0, 3).map(p => ({ id: p.id, name: p.name, create_date: p.create_date }))
+                );
+            }
+            
             return [];
         }
         
-        // Obtener todas las categorías únicas de los productos obtenidos
+        // Obtener categorías si es necesario
         const categoryIds = new Set(
             newestProducts
                 .map(product => product.categ_id ? product.categ_id[0] : null)
                 .filter(id => id !== null)
         );
 
-        // Traer todas las categorías de producto
-        const categories = await odooClient.searchRead(
-            'product.category',
-            [['id', 'in', [...categoryIds]]],
-            ['id', 'name']
-        );
-
-        // Crear un Map ID/Nombre para búsqueda rápida
-        const categoryMap = new Map();
-        categories.forEach(category => {
-            categoryMap.set(category.id, category.name);
-        });
+        let enrichedProducts = newestProducts;
         
-        // Añadir categorías a productos
-        const enrichedProducts = newestProducts.map(product => ({
-            ...product,
-            category: product.categ_id 
-                ? categoryMap.get(product.categ_id[0]) || 'Sin categoría'
-                : 'Sin categoría'
-        }));
+        if (categoryIds.size > 0) {
+            console.log(`🏷️ [getNewestProducts] Obteniendo ${categoryIds.size} categorías...`);
+            
+            const categories = await odooClient.searchRead(
+                'product.category',
+                [['id', 'in', [...categoryIds]]],
+                ['id', 'name']
+            );
 
-        console.log(`✅ Productos más nuevos obtenidos: ${enrichedProducts.length}`);
-        console.log(`📅 Fechas: desde ${enrichedProducts[enrichedProducts.length - 1]?.create_date} hasta ${enrichedProducts[0]?.create_date}`);
-        
+            const categoryMap = new Map();
+            categories.forEach(category => {
+                categoryMap.set(category.id, category.name);
+            });
+            
+            enrichedProducts = newestProducts.map(product => ({
+                ...product,
+                category: product.categ_id 
+                    ? categoryMap.get(product.categ_id[0]) || 'Sin categoría'
+                    : 'Sin categoría'
+            }));
+        }
+
+        console.log(`✅ [getNewestProducts] Devolviendo ${enrichedProducts.length} productos más nuevos`);
         return enrichedProducts;
+        
     } catch (error) {
-        console.error("❌ Error en getNewestProducts:", error);
+        console.error("❌ [getNewestProducts] Error detallado:", error);
+        console.error("❌ [getNewestProducts] Stack trace:", error.stack);
         return [];
     }
 };
@@ -547,12 +579,21 @@ export const getOdooPartnerId = async (uid: number) => {
 // ✅ Añadir producto al carrito (con control de concurrencia)
 export const addToCart = async (uid: number, productId: number): Promise<CartOperationResult> => {
     try {
+        console.log(`🛒 [addToCart] Iniciando para usuario ${uid}, producto ${productId}`);
+        
         const config = getConfig();
         const partner_id = await getOdooPartnerId(uid);
-        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
+        
+        console.log(`👤 [addToCart] Partner ID obtenido: ${partner_id}`);
+        if (!partner_id) {
+            console.error(`❌ [addToCart] Usuario ${uid} no tiene partner_id`);
+            return { success: false, message: 'Usuario no encontrado' };
+        }
 
         // 1. Verificar límite de productos por usuario
         const userCartCount = await getUserCartCount(uid);
+        console.log(`📊 [addToCart] Productos en carrito del usuario: ${userCartCount}/${config.MAX_PRODUCTS_PER_USER}`);
+        
         if (userCartCount >= config.MAX_PRODUCTS_PER_USER) {
             return {
                 success: false,
@@ -561,7 +602,9 @@ export const addToCart = async (uid: number, productId: number): Promise<CartOpe
         }
 
         // 2. Verificar disponibilidad del producto
+        console.log(`🔍 [addToCart] Verificando disponibilidad del producto ${productId}`);
         const productStatus = await getProductStatus(productId);
+        console.log(`📋 [addToCart] Estado del producto:`, productStatus);
         
         if (productStatus.isSold) {
             return { success: false, message: 'Este cuadro ya ha sido vendido.' };
@@ -575,23 +618,34 @@ export const addToCart = async (uid: number, productId: number): Promise<CartOpe
         }
 
         // 3. Obtener/crear carrito
+        console.log(`🛍️ [addToCart] Buscando órdenes de venta para partner ${partner_id}`);
         const orders = await odooClient.searchRead(
             'sale.order',
             [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
-            ['id']
+            ['id', 'name']
         );
+        console.log(`📋 [addToCart] Órdenes encontradas:`, orders);
 
         let order_id: number;
         if (orders.length === 0) {
-            order_id = await odooClient.create('sale.order', {
-                partner_id,
-                state: 'draft',
-            });
+            console.log(`➕ [addToCart] Creando nueva orden de venta para partner ${partner_id}`);
+            try {
+                order_id = await odooClient.create('sale.order', {
+                    partner_id,
+                    state: 'draft',
+                });
+                console.log(`✅ [addToCart] Orden creada con ID: ${order_id}`);
+            } catch (createOrderError) {
+                console.error(`❌ [addToCart] Error creando orden:`, createOrderError);
+                throw createOrderError;
+            }
         } else {
             order_id = orders[0].id;
+            console.log(`♻️ [addToCart] Usando orden existente: ${order_id}`);
         }
 
         // 4. Verificar si ya está en MI carrito
+        console.log(`🔍 [addToCart] Verificando si producto ${productId} ya está en orden ${order_id}`);
         const existingInMyCart = await odooClient.searchRead(
             'sale.order.line',
             [['order_id', '=', order_id], ['product_id', '=', productId]],
@@ -599,38 +653,60 @@ export const addToCart = async (uid: number, productId: number): Promise<CartOpe
         );
 
         if (existingInMyCart.length > 0) {
+            console.log(`⚠️ [addToCart] Producto ${productId} ya está en el carrito`);
             return { success: false, message: 'Ya tienes este cuadro en tu carrito.' };
         }
 
         // 5. Añadir al carrito
-        const lineId = await odooClient.create('sale.order.line', {
-            order_id,
-            product_id: productId,
-            product_uom_qty: 1,
-        });
+        console.log(`➕ [addToCart] Creando línea de orden para producto ${productId} en orden ${order_id}`);
+        try {
+            const lineId = await odooClient.create('sale.order.line', {
+                order_id,
+                product_id: productId,
+                product_uom_qty: 1,
+            });
+            console.log(`✅ [addToCart] Línea creada con ID: ${lineId}`);
 
-        // 6. Invalidar caches relevantes
-        productCache.delete(productId);
-        userCartCache.delete(uid);
+            // 6. Invalidar caches relevantes
+            productCache.delete(productId);
+            userCartCache.delete(uid);
 
-        // 7. Mensaje según competencia
-        const totalInterested = productStatus.inCarts + 1;
-        const competitionMsg = productStatus.inCarts > 0 
-            ? ` ⚠️ ${totalInterested} personas interesadas. ¡Completa tu compra!`
-            : '';
+            // 7. Mensaje según competencia
+            const totalInterested = productStatus.inCarts + 1;
+            const competitionMsg = productStatus.inCarts > 0 
+                ? ` ⚠️ ${totalInterested} personas interesadas. ¡Completa tu compra!`
+                : '';
 
-        console.log(`✅ Usuario ${uid} añadió producto ${productId} al carrito. Competencia: ${productStatus.inCarts}`);
+            console.log(`✅ Usuario ${uid} añadió producto ${productId} al carrito. Competencia: ${productStatus.inCarts}`);
 
-        return {
-            success: true,
-            message: `Cuadro añadido al carrito.${competitionMsg}`,
-            order_id,
-            line_id: lineId
-        };
+            return {
+                success: true,
+                message: `Cuadro añadido al carrito.${competitionMsg}`,
+                order_id,
+                line_id: lineId
+            };
+        } catch (createLineError) {
+            console.error(`❌ [addToCart] Error creando línea de orden:`, createLineError);
+            throw createLineError;
+        }
 
     } catch (error) {
-        console.error('❌ Error al añadir al carrito:', error);
-        return { success: false, message: 'Error al añadir al carrito' };
+        console.error('❌ [addToCart] Error detallado:', error);
+        console.error('❌ [addToCart] Stack trace:', error.stack);
+        
+        // Proporcionar mensaje más específico basado en el error
+        let specificMessage = 'Error al añadir al carrito';
+        if (error.message) {
+            if (error.message.includes('permission') || error.message.includes('access')) {
+                specificMessage = 'Error de permisos al añadir al carrito';
+            } else if (error.message.includes('create')) {
+                specificMessage = 'Error al crear la orden de carrito';
+            } else {
+                specificMessage = `Error: ${error.message}`;
+            }
+        }
+        
+        return { success: false, message: specificMessage };
     }
 };
 
@@ -685,45 +761,79 @@ export const removeFromCart = async (uid: number, lineId: number): Promise<CartO
 // ✅ Vaciar carrito completo
 export const clearCart = async (uid: number): Promise<CartOperationResult> => {
     try {
+        console.log(`🗑️ [clearCart] Iniciando limpieza de carrito para usuario ${uid}`);
+        
         const partner_id = await getOdooPartnerId(uid);
-        if (!partner_id) return { success: false, message: 'Usuario no encontrado' };
+        console.log(`👤 [clearCart] Partner ID: ${partner_id}`);
+        
+        if (!partner_id) {
+            console.error(`❌ [clearCart] Usuario ${uid} no tiene partner_id`);
+            return { success: false, message: 'Usuario no encontrado' };
+        }
 
         const orders = await odooClient.searchRead(
             'sale.order',
             [['state', '=', 'draft'], ['partner_id', '=', partner_id]],
-            ['id']
+            ['id', 'name']
         );
+        
+        console.log(`📋 [clearCart] Órdenes encontradas: ${orders.length}`);
 
         if (orders.length === 0) {
+            console.log(`ℹ️ [clearCart] No hay órdenes draft para el usuario`);
             return { success: true, message: 'El carrito ya está vacío' };
         }
 
         const orderId = orders[0].id;
+        console.log(`🛒 [clearCart] Procesando orden ${orderId}`);
+        
         const lines = await odooClient.searchRead(
             'sale.order.line',
             [['order_id', '=', orderId]],
             ['id', 'product_id']
         );
+        
+        console.log(`📄 [clearCart] Líneas encontradas: ${lines.length}`);
 
         if (lines.length > 0) {
             const lineIds = lines.map(line => line.id);
             const productIds = lines.map(line => line.product_id[0]);
             
-            await odooClient.unlink('sale.order.line', lineIds);
+            console.log(`🗑️ [clearCart] Eliminando ${lineIds.length} líneas:`, lineIds);
             
-            // Invalidar caches de productos afectados
-            productIds.forEach(productId => productCache.delete(productId));
+            try {
+                await odooClient.unlink('sale.order.line', lineIds);
+                console.log(`✅ [clearCart] Líneas eliminadas exitosamente`);
+                
+                // Invalidar caches de productos afectados
+                productIds.forEach(productId => productCache.delete(productId));
+            } catch (unlinkError) {
+                console.error(`❌ [clearCart] Error eliminando líneas:`, unlinkError);
+                throw unlinkError;
+            }
         }
 
         userCartCache.delete(uid);
+        console.log(`✅ [clearCart] Carrito limpiado exitosamente para usuario ${uid}`);
 
         return { success: true, message: 'Carrito vaciado' };
+        
     } catch (error) {
-        console.error('❌ Error al vaciar el carrito:', error);
-        return { success: false, message: 'Error al vaciar el carrito' };
+        console.error('❌ [clearCart] Error detallado:', error);
+        console.error('❌ [clearCart] Stack trace:', error.stack);
+        
+        let specificMessage = 'Error al vaciar el carrito';
+        if (error.message) {
+            if (error.message.includes('permission') || error.message.includes('access')) {
+                specificMessage = 'Error de permisos al vaciar el carrito';
+            } else {
+                specificMessage = `Error: ${error.message}`;
+            }
+        }
+        
+        return { success: false, message: specificMessage };
     }
 };
-
 // ✅ Obtener carrito del usuario
 export const getUserCart = async (uid: number): Promise<Cart | null> => {
     try {
