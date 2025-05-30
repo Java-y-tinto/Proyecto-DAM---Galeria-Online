@@ -18,7 +18,8 @@
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run compile",
     "build:prod": "npm run clean && tsc --build --force",
-    "setup:ci": "node scripts/setup-odoo-ci.js"
+    "setup:ci": "node scripts/setup-odoo-ci.js",
+    "testIntegrations": "node scripts/middlewareintegrations.js"
   },
   "keywords": [],
   "author": "",

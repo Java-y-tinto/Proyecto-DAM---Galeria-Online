@@ -65,17 +65,52 @@ export const connectOdoo = async () => {
         console.log(`🗄️ DB: ${config.db}`);
         console.log(`👤 Usuario: ${config.username}`);
         if ('apiKey' in config) {
-            console.log(`🔐 Método:API Key`);
+            console.log(`🔐 Método: API Key`);
         }
         else {
-            console.log(`🔐 Método:Password`);
+            console.log(`🔐 Método: Password`);
         }
-        await odooClient.connect();
-        console.log('✅ Conexión a Odoo exitosa');
+        // Intentar conectar con retry para CI
+        let retries = 0;
+        const maxRetries = process.env.CI ? 5 : 1;
+        while (retries < maxRetries) {
+            try {
+                await odooClient.connect();
+                console.log('✅ Conexión a Odoo exitosa');
+                // Verificar que realmente podemos hacer queries
+                if (process.env.NODE_ENV === 'test' || process.env.CI) {
+                    console.log('🧪 Verificando conectividad con query de prueba...');
+                    const testQuery = await odooClient.searchRead('res.users', [['id', '=', 1]], ['id', 'name']);
+                    console.log('✅ Query de prueba exitosa:', testQuery.length > 0 ? 'Usuario admin encontrado' : 'Sin resultados');
+                }
+                return;
+            }
+            catch (error) {
+                retries++;
+                console.error(`❌ Intento ${retries}/${maxRetries} falló:`, error.message);
+                if (retries < maxRetries) {
+                    console.log(`⏳ Reintentando en 5 segundos...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                }
+                else {
+                    throw error;
+                }
+            }
+        }
     }
     catch (error) {
         console.error('❌ ERROR al conectar con Odoo:', error);
         console.error('💡 Verifica que Odoo esté corriendo y las credenciales sean correctas');
+        // En CI, proporcionar más información de debug
+        if (process.env.CI) {
+            console.error('🔍 Información de debug para CI:');
+            console.error('- ODOO_BASE_URL:', process.env.ODOO_BASE_URL);
+            console.error('- ODOO_PORT:', process.env.ODOO_PORT);
+            console.error('- ODOO_DB:', process.env.ODOO_DB);
+            console.error('- ODOO_USERNAME:', process.env.ODOO_USERNAME);
+            console.error('- ODOO_PASSWORD está definido:', !!process.env.ODOO_PASSWORD);
+            console.error('- NODE_ENV:', process.env.NODE_ENV);
+        }
         throw error;
     }
 };
