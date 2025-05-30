@@ -70,7 +70,6 @@ jobs:
             -d odoo_test \
             -i base \
             --without-demo=False \
-            --stop-after-init \
             --log-level=info \
             --db_host=db \
             --db_user=odoo \
