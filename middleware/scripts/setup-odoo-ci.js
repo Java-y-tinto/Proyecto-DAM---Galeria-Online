@@ -191,7 +191,7 @@ async function setupTestData(client) {
       }
     }
      try {
-          const orderId = await odooClient.create('sale.order', {
+          const orderId = await client.create('sale.order', {
             partner_id: getOdooPartnerId(2),
             state: 'draft',
           });
