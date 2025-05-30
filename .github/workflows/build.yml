@@ -87,7 +87,9 @@ jobs:
           ODOO_DB_NAME=odoo_test
           ODOO_USERNAME=admin
           ODOO_PASSWORD=admin
+          JWT_SECRET=tu_jwt_secret_aqui_para_ci # Asegúrate de añadir un JWT_SECRET
           EOF
+          echo ".env file created in middleware directory"
       - name: ejecutar middleware
         working-directory: middleware
         run: npm run start
