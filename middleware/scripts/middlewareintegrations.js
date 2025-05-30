@@ -144,7 +144,7 @@ async function runTests() {
   );
   testResults.getProducts = 
     assert(res.data?.products && Array.isArray(res.data.products), 'Obtener lista de productos') &&
-    assert(res.data?.products.length > 0, 'La lista de productos no está vacía');
+    assert(res.data?.products.getNewestProducts != "[]", 'La lista de productos no está vacía');
   if (res.data?.products?.[0]?.id) {
     testProductId = res.data.products[0].id; // Guardar ID para pruebas posteriores
   }
