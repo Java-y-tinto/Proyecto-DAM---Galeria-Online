@@ -14,7 +14,7 @@ beforeAll(() => {
         // Variables para CI (GitHub Actions)
         process.env.ODOO_BASE_URL = process.env.ODOO_BASE_URL || 'http://localhost';
         process.env.ODOO_PORT = process.env.ODOO_PORT || '8069';
-        process.env.ODOO_DB = process.env.ODOO_DB || 'odoo';
+        process.env.ODOO_DB = process.env.ODOO_DB || 'postgres';
         process.env.ODOO_USERNAME = process.env.ODOO_USERNAME || 'admin';
         process.env.ODOO_PASSWORD = process.env.ODOO_PASSWORD || 'admin';
         
