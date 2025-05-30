@@ -11,34 +11,42 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      db:
-        image: postgres:15
-        env:
-          POSTGRES_USER: odoo
-          POSTGRES_PASSWORD: odoo
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U odoo"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
+        db:
+          image: postgres:15
+          env:
+            POSTGRES_USER: odoo
+            POSTGRES_PASSWORD: odoo
+          ports:
+            - 5432:5432
+          options: >-
+            --health-cmd="pg_isready -U odoo"
+            --health-interval=10s
+            --health-timeout=5s
+            --health-retries=5
+        odoo:
+          image: odoo:18.0
+          ports:
+            - 8069:8069
+          env:
+            HOST: db
+            USER: odoo
+            PASSWORD: odoo
+          
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Install docker compose
-        uses: docker/setup-compose-action@v1
-
-      - name: Set up Docker Compose
-        run: |
-          docker compose -f backend/docker-compose.yml up -d
-
-      - name: Wait for services to be healthy
-        run: |
-          echo "Waiting for Odoo to be healthy..."
-          timeout 180 bash -c 'until curl -f http://localhost:8069/web/health; do sleep 5; done'
       
-      # Opcional: aquí irían tests, E2E, etc.
-      - name: Show Odoo logs (debugging)
-        run: docker compose -f backend/docker-compose.yml logs odoo
+      - name: Instalar dependencias middleware
+        working-directory: middleware
+        run: npm ci --omit=dev
+      
+      - name: Compilar middleware
+        working-directory: middleware
+        run: npm run compile
+      
+      - name: Verificar que odoo esta corriendo
+        run: curl -f http://localhost:8069/web/health
+      
+      - name: prueba
+        run: docker ps
+    
