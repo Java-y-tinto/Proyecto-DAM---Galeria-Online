@@ -218,7 +218,7 @@ async function main() {
 
     await checkOdooAvailability();
     const client = await connectToOdoo();
-   // await setupTestData(client);
+    await setupTestData(client);
    await createOrUpdateField(client);
     await simpleAuthenticatedCall(client);
     console.log('🎉 Configuración de datos de prueba completada exitosamente!');
