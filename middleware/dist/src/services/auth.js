@@ -13,7 +13,17 @@ export const generateToken = async (payload) => {
     return { user: { uid: payload.uid, email: payload.email }, token };
 };
 export const verifyToken = (token) => {
-    return jwt.verify(token, JWT_SECRET);
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        return decoded;
+    }
+    catch (error) {
+        if (error.name === 'TokenExpiredError') {
+        }
+        else if (error.name === 'JsonWebTokenError') {
+        }
+        throw error;
+    }
 };
 export const authenticateUser = async (email, password) => {
     try {
@@ -29,9 +39,12 @@ export const authenticateUser = async (email, password) => {
         const uid = await odoo.authResponse.uid;
         if (!uid)
             return null;
-        //return odoo;
-        return { uid, email, token: (await generateToken({ uid, email })).token };
-        //Algo ha salido mal,Odoo esta desconectado o el usuario es invalido
+        const tokenData = await generateToken({ uid, email });
+        return {
+            uid,
+            email,
+            token: tokenData.token
+        };
     }
     catch (error) {
         return null;
@@ -44,20 +57,42 @@ export const registerUser = async ({ name, email, passwd }) => {
             name,
             email
         });
+        // Buscar el ID del grupo portal dinámicamente
+        const portalGroups = await odooClient.searchRead('res.groups', [['category_id.xml_id', '=', 'base.module_category_user_type'], ['name', '=', 'Portal']], ['id']);
+        let portalGroupId = null;
+        if (portalGroups.length > 0) {
+            portalGroupId = portalGroups[0].id;
+        }
+        else {
+        }
         // Creacion de usuario de odoo
-        const userId = await odooClient.create('res.users', {
+        const userData = {
             name,
             login: email,
             password: passwd,
             partner_id: partnerId,
-            groups_id: [[6, false, []]], // No asignar grupos para no dar acceso al backend Odoo
-        });
+            groups_id: [],
+        };
+        if (portalGroupId) {
+            userData.groups_id = [[6, false, [portalGroupId]]];
+        }
+        const userId = await odooClient.create('res.users', userData);
         if (!userId)
             throw new Error('No se pudo crear el usuario');
+        // Crear registro de carrito vacio
+        try {
+            const orderId = await odooClient.create('sale.order', {
+                partner_id: partnerId,
+                state: 'draft',
+            });
+        }
+        catch (cartError) {
+            // No lanzar error aquí porque el usuario se ha creado correctamente
+        }
         const token = await generateToken({ uid: userId, email });
         return { token };
     }
     catch (error) {
-        console.error('ERROR al conectar/autenticar con Odoo:', error);
+        throw error;
     }
 };

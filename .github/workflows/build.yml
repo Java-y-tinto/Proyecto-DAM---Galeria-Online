@@ -47,7 +47,7 @@ jobs:
         # Odoo Configuration
         ODOO_BASE_URL=http://localhost
         ODOO_PORT=8069
-        ODOO_DB=postgres
+        ODOO_DB=odoo_test
         ODOO_USERNAME=admin
         ODOO_PASSWORD=admin
         
@@ -108,7 +108,7 @@ jobs:
         CI: true
         ODOO_BASE_URL: http://localhost
         ODOO_PORT: 8069
-        ODOO_DB: postgres
+        ODOO_DB: odoo_test
         ODOO_USERNAME: admin
         ODOO_PASSWORD: admin
         JWT_SECRET: test-jwt-secret-key-for-ci-testing-2024
@@ -125,7 +125,7 @@ jobs:
         CI: true
         ODOO_BASE_URL: http://localhost
         ODOO_PORT: 8069
-        ODOO_DB: postgres
+        ODOO_DB: odoo_test
         ODOO_USERNAME: odoo
         ODOO_PASSWORD: odoo
         JWT_SECRET: test-jwt-secret-key-for-ci-testing-2024
@@ -188,7 +188,7 @@ jobs:
       run: |
         echo "📦 Instalando dependencias del frontend..."
         npm ci
-        
+
     - name: 🔨 Build de producción
       working-directory: ./frontend
       run: |

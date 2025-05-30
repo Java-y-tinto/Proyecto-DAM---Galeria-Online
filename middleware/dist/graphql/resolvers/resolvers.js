@@ -1,10 +1,9 @@
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, getSoldProducts, searchProducts, getRelatedProducts, getFeaturedProducts, getNewestProducts } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, searchProducts, getRelatedProducts, getFeaturedProducts, getNewestProducts } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
 export const resolvers = {
     Query: {
         products: async (_, __, context) => {
             //if (!context.user) throw new Error('No autorizado');
-            console.log('[Resolver products]: Productos vendidos: ', getSoldProducts());
             return await getProducts();
         },
         productsByCategory: async (_, { categoryName }, context) => {
@@ -13,60 +12,44 @@ export const resolvers = {
         },
         productById: async (_, { id }, context) => {
             try {
-                console.log('[Resolver products]: Productos vendidos: ', getSoldProducts());
-                console.log(`Resolver: Buscando producto con ID: ${id}`);
                 const products = await getProductById(id);
-                console.log(`Resolver: Productos encontrados:`, products);
                 if (!products || products.length === 0) {
-                    console.log(`Resolver: No se encontraron productos`);
                     return null;
                 }
                 const product = products[0];
-                console.log(`Resolver: Devolviendo producto:`, product);
                 return product;
             }
             catch (error) {
-                console.error(`Resolver: Error al buscar producto:`, error);
                 return null;
             }
         },
         searchProducts: async (_, { searchTerm }, context) => {
             try {
-                console.log(`Resolver: Buscando productos con el término de búsqueda: ${searchTerm}`);
                 if (!searchTerm || searchTerm.trim().length === 0) {
-                    console.log(`Resolver: No se proporcionó un término de búsqueda`);
                     return [];
                 }
                 const products = await searchProducts(searchTerm.trim());
-                console.log(`Resolver: Productos encontrados:`, products);
                 return products;
             }
             catch (error) {
-                console.error(`Resolver [BUSQUEDA DE PRODUCTOS]: Error al buscar productos:`, error);
                 return [];
             }
         },
         getRelatedProducts: async (_, { productId, limit = 4 }, context) => {
             try {
-                console.log(`Resolver: Buscando productos relacionados para ID: ${productId}, límite: ${limit}`);
                 const relatedProducts = await getRelatedProducts(productId, limit);
-                console.log(`Resolver: ${relatedProducts.length} productos relacionados encontrados`);
                 return relatedProducts;
             }
             catch (error) {
-                console.error(`Resolver [PRODUCTOS RELACIONADOS]: Error:`, error);
                 return [];
             }
         },
         getFeaturedProducts: async (_, __, context) => {
             try {
-                console.log(`Resolver: Buscando productos destacados`);
                 const featuredProducts = await getFeaturedProducts();
-                console.log(`Resolver: ${featuredProducts.length} productos destacados encontrados`);
                 return featuredProducts;
             }
             catch (error) {
-                console.error(`Resolver [PRODUCTOS DESTACADOS]: Error:`, error);
                 return [];
             }
         },
@@ -78,13 +61,10 @@ export const resolvers = {
         },
         getNewestProducts: async (_, __, context) => {
             try {
-                console.log('Resolver: Obteniendo productos más nuevos...');
                 const newestProducts = await getNewestProducts();
-                console.log(`Resolver: ${newestProducts.length} productos más nuevos encontrados`);
                 return newestProducts;
             }
             catch (error) {
-                console.error('Resolver [PRODUCTOS MÁS NUEVOS]: Error:', error);
                 return [];
             }
         },
@@ -159,7 +139,6 @@ export const resolvers = {
                 };
             }
             catch (error) {
-                console.error('ERROR al conectar/registrar con Odoo:', error);
                 return {
                     success: false,
                     message: `Error de registro: ${error.message || 'Error desconocido'}`,

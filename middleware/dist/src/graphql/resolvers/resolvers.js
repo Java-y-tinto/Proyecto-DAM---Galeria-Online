@@ -1,4 +1,4 @@
-import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, checkoutCart } from '../../instances/odooClientInstance.js';
+import { findUserbyEmail, getProductById, getProducts, getProductsByCategory, getUserCart, addToCart, clearCart, removeFromCart, getOdooPartnerId, searchProducts, getRelatedProducts, getFeaturedProducts, getNewestProducts } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
 export const resolvers = {
     Query: {
@@ -12,49 +12,101 @@ export const resolvers = {
         },
         productById: async (_, { id }, context) => {
             try {
-                console.log(`Resolver: Buscando producto con ID: ${id}`);
                 const products = await getProductById(id);
-                console.log(`Resolver: Productos encontrados:`, products);
                 if (!products || products.length === 0) {
-                    console.log(`Resolver: No se encontraron productos`);
                     return null;
                 }
                 const product = products[0];
-                console.log(`Resolver: Devolviendo producto:`, product);
                 return product;
             }
             catch (error) {
-                console.error(`Resolver: Error al buscar producto:`, error);
                 return null;
             }
         },
-        getCart: async (_, __, context) => {
-            if (!context.user) {
-                // Aquí podrías lanzar un error GraphQL o devolver null
-                throw new Error("No autorizado");
+        searchProducts: async (_, { searchTerm }, context) => {
+            try {
+                if (!searchTerm || searchTerm.trim().length === 0) {
+                    return [];
+                }
+                const products = await searchProducts(searchTerm.trim());
+                return products;
             }
-            const cart = await getUserCart(context.user.uid);
-            if (!cart)
-                return null;
-            // En cada línea, obtener el objeto product completo con getProductById
-            const linesWithProducts = await Promise.all(cart.lines.map(async (line) => {
-                // product_id viene como [id, "nombre"], convertimos a string id
-                const productId = line.product_id[0].toString();
-                const productArr = await getProductById(productId);
-                const product = productArr && productArr.length > 0 ? productArr[0] : null;
-                return {
-                    id: line.id,
-                    product,
-                    display_name: line.display_name,
-                    product_uom_qty: line.product_uom_qty,
-                    price_unit: line.price_unit,
-                    price_subtotal: line.price_subtotal,
-                };
-            }));
-            return {
-                order: cart.order,
-                lines: linesWithProducts,
-            };
+            catch (error) {
+                return [];
+            }
+        },
+        getRelatedProducts: async (_, { productId, limit = 4 }, context) => {
+            try {
+                const relatedProducts = await getRelatedProducts(productId, limit);
+                return relatedProducts;
+            }
+            catch (error) {
+                return [];
+            }
+        },
+        getFeaturedProducts: async (_, __, context) => {
+            try {
+                const featuredProducts = await getFeaturedProducts();
+                return featuredProducts;
+            }
+            catch (error) {
+                return [];
+            }
+        },
+        getPartnerId: async (_, __, context) => {
+            if (!context.user) {
+                throw new Error('No autorizado'); // Lanza error en lugar de devolver objeto
+            }
+            return await getOdooPartnerId(context.user.uid);
+        },
+        getNewestProducts: async (_, __, context) => {
+            try {
+                const newestProducts = await getNewestProducts();
+                return newestProducts;
+            }
+            catch (error) {
+                return [];
+            }
+        },
+        /* getCart: async (_: any, __: any, context: any) => {
+         if (!context.user) {
+           // Aquí podrías lanzar un error GraphQL o devolver null
+           throw new Error("No autorizado");
+         }
+       
+         const cart = await getUserCart(context.user.uid);
+         if (!cart) return null;
+       
+         // En cada línea, obtener el objeto product completo con getProductById
+         const linesWithProducts = await Promise.all(
+           cart.lines.map(async (line) => {
+             // product_id viene como [id, "nombre"], convertimos a string id
+             const productId = line.product_id[0].toString();
+       
+             const productArr = await getProductById(productId);
+             const product = productArr && productArr.length > 0 ? productArr[0] : null;
+       
+             return {
+               id: line.id,
+               product,
+               display_name: line.display_name,
+               product_uom_qty: line.product_uom_qty,
+               price_unit: line.price_unit,
+               price_subtotal: line.price_subtotal,
+             };
+           })
+         );
+       
+         return {
+           order: cart.order,
+           lines: linesWithProducts,
+         };
+       },
+       */
+        getCart: async (_, __, context) => {
+            if (!context.user)
+                throw new Error('No autorizado');
+            return await getUserCart(context.user.uid);
         },
     },
     Mutation: {
@@ -87,7 +139,6 @@ export const resolvers = {
                 };
             }
             catch (error) {
-                console.error('ERROR al conectar/registrar con Odoo:', error);
                 return {
                     success: false,
                     message: `Error de registro: ${error.message || 'Error desconocido'}`,
@@ -109,11 +160,6 @@ export const resolvers = {
             if (!context.user)
                 return { success: false, message: "No autorizado" };
             return await clearCart(context.user.uid);
-        },
-        checkoutCart: async (_, __, context) => {
-            if (!context.user)
-                return { success: false, message: "No autorizado" };
-            return await checkoutCart(context.user.uid);
         },
     },
 };

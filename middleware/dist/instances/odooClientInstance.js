@@ -22,22 +22,6 @@ const CACHE_CONFIG = {
 const getConfig = () => process.env.NODE_ENV === 'production'
     ? CACHE_CONFIG.production
     : CACHE_CONFIG.development;
-// ✅ Configuración Odoo
-const odooConfig = {
-    baseUrl: process.env.ODOO_BASE_URL,
-    db: process.env.ODOO_DB,
-    username: process.env.ODOO_USERNAME,
-    apiKey: process.env.ODOO_API_KEY,
-    port: Number(process.env.ODOO_PORT),
-};
-const odooClient = new OdooJSONRpc({
-    baseUrl: process.env.ODOO_BASE_URL,
-    port: Number(process.env.ODOO_PORT),
-    db: process.env.ODOO_DB,
-    username: process.env.ODOO_USERNAME,
-    apiKey: process.env.ODOO_API_KEY,
-});
-// ✅ Cache inteligente con LRU
 const productCache = new LRUCache({
     max: getConfig().CACHE_MAX_SIZE,
     ttl: getConfig().CACHE_TTL,
@@ -49,15 +33,50 @@ const userCartCache = new LRUCache({
     max: 500, // Cache para 500 usuarios
     ttl: 30 * 1000, // 30 segundos
 });
-// ✅ Conexión a Odoo
+const getOdooConfig = () => {
+    const baseConfig = {
+        baseUrl: process.env.ODOO_BASE_URL,
+        port: Number(process.env.ODOO_PORT),
+        db: process.env.ODOO_DB,
+        username: process.env.ODOO_USERNAME,
+    };
+    // En CI/testing usar contraseña, en producción usar API Key
+    if (process.env.NODE_ENV === 'test' || process.env.CI) {
+        console.log('🧪 Modo testing: usando autenticación por contraseña');
+        return {
+            ...baseConfig,
+            password: process.env.ODOO_PASSWORD
+        };
+    }
+    else {
+        console.log('🔐 Modo producción: usando autenticación por API Key');
+        return {
+            ...baseConfig,
+            apiKey: process.env.ODOO_API_KEY
+        };
+    }
+};
+const odooClient = new OdooJSONRpc(getOdooConfig());
 export const connectOdoo = async () => {
     try {
-        console.log('🔌 Intentando conectar a Odoo...');
-        const versionInfo = await odooClient;
-        console.log('✅ Conexión a Odoo exitosa. Versión:', versionInfo);
+        const config = getOdooConfig();
+        console.log('🔌 Conectando a Odoo...');
+        console.log(`📍 URL: ${config.baseUrl}:${config.port}`);
+        console.log(`🗄️ DB: ${config.db}`);
+        console.log(`👤 Usuario: ${config.username}`);
+        if ('apiKey' in config) {
+            console.log(`🔐 Método:API Key`);
+        }
+        else {
+            console.log(`🔐 Método:Password`);
+        }
+        await odooClient.connect();
+        console.log('✅ Conexión a Odoo exitosa');
     }
     catch (error) {
-        console.error('❌ ERROR al conectar/autenticar con Odoo:', error);
+        console.error('❌ ERROR al conectar con Odoo:', error);
+        console.error('💡 Verifica que Odoo esté corriendo y las credenciales sean correctas');
+        throw error;
     }
 };
 // ✅ Función para obtener estado del producto (con cache)

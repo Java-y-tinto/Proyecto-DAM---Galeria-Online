@@ -8,7 +8,7 @@ const OdooJSONRpc = OdooModule.default || OdooModule;
 const config = {
   baseUrl: process.env.ODOO_BASE_URL || 'http://localhost',
   port: Number(process.env.ODOO_PORT) || 8069,
-  db:  'postgres',  // Cambiado de 'postgres' a 'odoo'
+  db:  'odoo_test',  // Cambiado de 'postgres' a 'odoo'
   username: process.env.ODOO_USERNAME || 'admin',  // Usuario admin de Odoo, no de DB
   password: process.env.ODOO_PASSWORD || 'admin'   // Contraseña admin de Odoo
 };

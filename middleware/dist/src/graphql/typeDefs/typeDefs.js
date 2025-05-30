@@ -24,8 +24,17 @@ type Product {
   image_1920: String
   image_512: String
   list_price: Float
+  x_featured: Boolean 
+  category: String
+  create_date: String
   attributes: [ProductAttribute]
   variant_attributes: [VariantAttributeValue]
+}
+
+type AuthPayload {
+  token: String
+  success: Boolean!
+  message: String!
 }
 
 type CartOperationResult {
@@ -43,13 +52,16 @@ type CartOrder {
   amount_total: Float!
   amount_tax: Float!
   amount_untaxed: Float!
-  access_url: String!
+  access_url: String
 }
 
 type CartLine {
   id: Int!
-  product: Product!
-
+  product: Product
+  display_name: String!
+  product_uom_qty: Float!
+  price_unit: Float!
+  price_subtotal: Float!
 }
 
 type Cart {
@@ -57,27 +69,24 @@ type Cart {
   lines: [CartLine!]!
 }
 
-
-type AuthPayload {
-  token: String
-  success: Boolean!
-  message: String!
-
-}
-
 type Query {
   products: [Product!]!
   productsByCategory(categoryName: String!): [Product!]!
   productById(id: String!): Product
-  getCart(uid: Int!): Cart
+  searchProducts(searchTerm: String!): [Product!] 
+  getRelatedProducts(productId: String!, limit: Int): [Product!]!
+  getFeaturedProducts: [Product!]
+  getNewestProducts: [Product!]!
+  getPartnerId: Int
+  getCart: Cart
 }
 
 type Mutation {
   login(email: String!, password: String!): AuthPayload
   registerUser(name: String!, email: String!, passwd: String!): AuthPayload
-  addToCart(uid: Int!, productId: Int!): CartOperationResult!
-  removeFromCart(uid: Int!, lineId: Int!): CartOperationResult!
-  clearCart(uid: Int!): CartOperationResult!
-  checkoutCart(uid: Int!): CartOperationResult!
+  addToCart(productId: Int!): CartOperationResult!
+  removeFromCart(lineId: Int!): CartOperationResult!
+  clearCart: CartOperationResult!
+  checkoutCart: CartOperationResult!
 }
 `;
