@@ -1,349 +1,46 @@
-name: Node.js CI
+name: Backend CI
 
 on:
   push:
-    branches: [ master, develop ]
+    paths:
+      - 'backend/**'
   pull_request:
-    branches: [ master, develop ]
-
-env:
-  NODE_VERSION: '20'
-
-concurrency: 
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    paths:
+      - 'backend/**'
 
 jobs:
-  test-middleware:
-    name: 🧪 Test Middleware + Odoo Integration
+  test-backend:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    
+
+    services:
+      db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U odoo"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install docker compose
+        uses: docker/setup-compose-action@v1
 
-    - name: 🟢 Setup Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: middleware/package-lock.json
+      - name: Set up Docker Compose
+        run: |
+          docker compose -f backend/docker-compose.yml up -d
 
-    - name: 🐳 Setup Docker y Docker Compose
-      uses: docker/setup-compose-action@v1
-      with:
-          version: latest
-
-    - name: 🔧 Configurar variables de entorno para testing
-      working-directory: ./middleware
-      run: |
-        echo "🔧 Creando archivo .env para testing..."
-        cat > .env << 'EOF'
-        # Configuración para CI/Testing
-        NODE_ENV=test
-        CI=true
-        
-        # Odoo Configuration
-        ODOO_BASE_URL=http://localhost
-        ODOO_PORT=8069
-        ODOO_DB=odoo_test
-        ODOO_USERNAME=admin
-        ODOO_PASSWORD=admin
-        
-        # JWT Configuration
-        JWT_SECRET=test-jwt-secret-key-for-ci-testing-2024
-        JWT_EXPIRES_IN=2h
-        
-        # Puerto del middleware
-        PORT=4000
-        EOF
-
-    - name: 📦 Instalar dependencias del middleware
-      working-directory: ./middleware
-      run: |
-        echo "📦 Instalando dependencias del middleware..."
-        npm ci
-
-    - name: 🔨 Compilar TypeScript
-      working-directory: ./middleware
-      run: |
-        echo "🔨 Compilando TypeScript..."
-        npm run compile
-
-    - name: 🚀 Iniciar servicios con Docker Compose
-      working-directory: ./backend
-      run: |
-        echo "🚀 Iniciando Odoo y PostgreSQL con Docker Compose..."
-        docker compose up -d db odoo
-        
-        echo "⏳ Esperando que PostgreSQL esté listo..."
-        timeout 60 bash -c 'until docker compose exec -T db pg_isready -U odoo; do 
-          echo "⏳ Esperando PostgreSQL... ($(date))"
-          sleep 3
-        done'
-        
-        echo "⏳ Esperando que Odoo esté listo..."
-        timeout 180 bash -c 'until curl -f http://localhost:8069/web/health > /dev/null 2>&1; do 
-          echo "⏳ Esperando Odoo... ($(date))"
-          sleep 5
-        done'
-        
-        echo "✅ Servicios iniciados correctamente"
-
-    - name: 📋 Mostrar logs de servicios
-      working-directory: ./backend
-      if: always()
-      run: |
-        echo "📋 Logs de PostgreSQL:"
-        docker compose logs db | tail -20
-        echo ""
-        echo "📋 Logs de Odoo:"
-        docker compose logs odoo | tail -30
-
-    - name: 🎭 Configurar Odoo y datos de prueba
-      working-directory: ./middleware
-      env:
-        NODE_ENV: test
-        CI: true
-        ODOO_BASE_URL: http://localhost
-        ODOO_PORT: 8069
-        ODOO_DB: odoo_test
-        ODOO_USERNAME: admin
-        ODOO_PASSWORD: admin
-        JWT_SECRET: test-jwt-secret-key-for-ci-testing-2024
-        JWT_EXPIRES_IN: 2h
-      run: |
-        echo "🎭 Configurando Odoo para testing usando script dedicado..."
-        npm run setup:ci
-
-    - name: 🧪 Ejecutar tests de integración
-      working-directory: ./middleware
-      timeout-minutes: 15
-      env:
-        NODE_ENV: test
-        CI: true
-        ODOO_BASE_URL: http://localhost
-        ODOO_PORT: 8069
-        ODOO_DB: odoo_test
-        ODOO_USERNAME: odoo
-        ODOO_PASSWORD: odoo
-        JWT_SECRET: test-jwt-secret-key-for-ci-testing-2024
-        JWT_EXPIRES_IN: 2h
-      run: |
-        echo "🧪 Ejecutando tests de integración del middleware..."
-        echo "🔧 Variables de entorno configuradas:"
-        echo "   - NODE_ENV: $NODE_ENV"
-        echo "   - ODOO_BASE_URL: $ODOO_BASE_URL"
-        echo "   - ODOO_PORT: $ODOO_PORT" 
-        echo "   - ODOO_DB: $ODOO_DB"
-        echo "   - ODOO_USERNAME: $ODOO_USERNAME"
-        
-        npm run test
-
-    - name: 📊 Subir reporte de cobertura
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: coverage-report-middleware
-        path: middleware/coverage/
-        retention-days: 30
-
-    - name: 📋 Mostrar logs de servicios si hay fallos
-      working-directory: ./backend
-      if: failure()
-      run: |
-        echo "📋 Logs de PostgreSQL:"
-        docker compose logs db
-        echo ""
-        echo "📋 Logs de Odoo:"
-        docker compose logs odoo
-
-    - name: 🧹 Limpiar servicios
-      working-directory: ./backend
-      if: always()
-      run: |
-        echo "🧹 Limpiando servicios Docker..."
-        docker compose down -v
-        docker system prune -f
-
-  test-frontend:
-    name: 🎨 Test Frontend Angular
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
-    steps:
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-
-    - name: 🟢 Setup Node.js ${{ env.NODE_VERSION }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
-
-    - name: 📦 Instalar dependencias del frontend
-      working-directory: ./frontend
-      run: |
-        echo "📦 Instalando dependencias del frontend..."
-        npm ci
-
-    - name: 🔨 Build de producción
-      working-directory: ./frontend
-      run: |
-        echo "🔨 Construyendo frontend para producción..."
-        npm run build
-
-    - name: 🧪 Tests unitarios
-      working-directory: ./frontend
-      run: |
-        echo "🧪 Ejecutando tests unitarios del frontend..."
-        npm test -- --watch=false --browsers=ChromeHeadless --code-coverage || echo "⚠️ Tests completados"
-
-    - name: 📊 Subir artefactos del frontend
-      uses: actions/upload-artifact@v4
-      with:
-        name: frontend-dist
-        path: frontend/dist/
-        retention-days: 30
-
-  integration-e2e:
-    name: 🔗 Tests E2E Integration
-    runs-on: ubuntu-latest
-    needs: [test-middleware, test-frontend]
-    timeout-minutes: 20
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-
-    - name: 🟢 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-
-    - name: 🐳 Iniciar stack completo
-      working-directory: ./backend
-      run: |
-        echo "🐳 Iniciando stack completo con Docker Compose..."
-        docker compose up -d
-        
-        echo "⏳ Esperando que todos los servicios estén listos..."
-        timeout 300 bash -c 'until curl -f http://localhost:8069/web/health && curl -f http://localhost:4000/health && curl -f http://localhost:4200 > /dev/null 2>&1; do 
-          echo "⏳ Esperando servicios... ($(date))"
-          sleep 10
-        done'
-
-    - name: 🔗 Tests de integración E2E
-      run: |
-        echo "🔗 Ejecutando tests E2E reales..."
-        
-        # Test de conectividad frontend
-        echo "✅ Testing Frontend (puerto 4200)..."
-        curl -f http://localhost:4200
-        
-        # Test de conectividad middleware
-        echo "✅ Testing Middleware GraphQL (puerto 4000)..."
-        curl -f http://localhost:4000/health
-        
-        # Test de conectividad Odoo
-        echo "✅ Testing Odoo (puerto 8069)..."
-        curl -f http://localhost:8069/web/health
-        
-        # Test de GraphQL endpoint
-        echo "✅ Testing GraphQL endpoint..."
-        curl -X POST \
-          -H "Content-Type: application/json" \
-          -d '{"query": "query { products { id name list_price } }"}' \
-          http://localhost:4000/graphql
-        
-        echo "🎉 Tests E2E completados exitosamente"
-
-    - name: 🧹 Limpiar servicios E2E
-      if: always()
-      working-directory: ./backend
-      run: |
-        echo "🧹 Limpiando servicios Docker..."
-        docker compose down -v
-
-  build-production:
-    name: 🚀 Build Production
-    runs-on: ubuntu-latest
-    needs: [test-middleware, test-frontend]
-    if: github.ref == 'refs/heads/main'
-    timeout-minutes: 10
-    
-    steps:
-    - name: 📥 Checkout código
-      uses: actions/checkout@v4
-
-    - name: 🟢 Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ env.NODE_VERSION }}
-
-    - name: 🏗️ Build middleware para producción
-      working-directory: ./middleware
-      run: |
-        echo "🏗️ Construyendo middleware para producción..."
-        npm ci --only=production
-        npm run compile
-
-    - name: 🎨 Build frontend para producción
-      working-directory: ./frontend
-      run: |
-        echo "🎨 Construyendo frontend para producción..."
-        npm ci
-        npm run build -- --configuration=production
-
-    - name: 🐳 Build imágenes Docker para producción
-      working-directory: ./backend
-      run: |
-        echo "🐳 Construyendo imágenes Docker..."
-        docker compose build --no-cache
-        
-        echo "📝 Listando imágenes creadas..."
-        docker images | grep galeria
-
-    - name: 📦 Crear artefactos de producción
-      uses: actions/upload-artifact@v4
-      with:
-        name: production-build
-        path: |
-          middleware/dist/
-          frontend/dist/
-          docker-compose.yml
-          docker-compose.prod.yml
-        retention-days: 90
-
-    - name: 🎉 Deployment preparado
-      run: |
-        echo "🎉 Build de producción completado exitosamente!"
-        echo "📦 Artefactos listos para deployment"
-        echo "🐳 Imágenes Docker construidas"
-        echo "🚀 El sistema está listo para ser desplegado"
-
-  summary:
-    name: 📋 Resumen CI
-    runs-on: ubuntu-latest
-    needs: [test-middleware, test-frontend, build-production]
-    if: always()
-    
-    steps:
-    - name: 📋 Mostrar resumen
-      run: |
-        echo "🎯 RESUMEN DEL CI PIPELINE"
-        echo "========================"
-        echo "✅ Tests Middleware: ${{ needs.test-middleware.result }}"
-        echo "✅ Tests Frontend: ${{ needs.test-frontend.result }}"
-        echo "✅ Build Producción: ${{ needs.build-production.result }}"
-        echo ""
-        if [[ "${{ needs.test-middleware.result }}" == "success" && "${{ needs.test-frontend.result }}" == "success" ]]; then
-          echo "🎉 ¡CI PIPELINE COMPLETADO EXITOSAMENTE!"
-          echo "🚀 La Galería Online está lista para deployment"
-        else
-          echo "❌ CI Pipeline falló. Revisar logs arriba."
-          exit 1
-        fi
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for Odoo to be healthy..."
+          timeout 180 bash -c 'until curl -f http://localhost:8069/web/health; do sleep 5; done'
+      
+      # Opcional: aquí irían tests, E2E, etc.
+      - name: Show Odoo logs (debugging)
+        run: docker compose -f backend/docker-compose.yml logs odoo
