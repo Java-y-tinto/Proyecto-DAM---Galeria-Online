@@ -90,10 +90,8 @@ async function createOrUpdateField(client) {
     const products = await client.searchRead(
       'product.template', // Modelo estándar
       [],                 // Dominio vacío (traer cualquiera)
-      {
-        fields: ['id', 'name'], // Solo campos estándar que seguro existen
-        limit: 1
-      }
+      
+         ['id', 'name']
     );
     console.log('✅ Lectura de product.template exitosa (sin campos custom):', products);
     if (products.length === 0) {
@@ -160,7 +158,7 @@ async function setupTestData(client) {
         delete prodData.categ_id; // O asignar un ID de categoría por defecto si es necesario
     }
 
-    let existingProd = await client.searchRead('product.product', [['name', '=', prodData.name]], { fields: ['id'], limit: 1 });
+    let existingProd = await client.searchRead('product.product', [['name', '=', prodData.name]],  ['id']);
     if (existingProd.length > 0) {
       console.log(`♻️ Producto existente: ${prodData.name} (ID: ${existingProd[0].id})`);
       // Opcional: Actualizarlo si es necesario, por ejemplo, para el campo x_featured
