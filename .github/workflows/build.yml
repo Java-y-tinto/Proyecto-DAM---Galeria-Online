@@ -31,10 +31,9 @@ jobs:
         cache-dependency-path: middleware/package-lock.json
 
     - name: 🐳 Setup Docker y Docker Compose
-      run: |
-        echo "🐳 Verificando Docker..."
-        docker --version
-        docker-compose --version
+      uses: docker/setup-compose-action@v1
+      with:
+          version: latest
 
     - name: 🔧 Configurar variables de entorno para testing
       run: |
