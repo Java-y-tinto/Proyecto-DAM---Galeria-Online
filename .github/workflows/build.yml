@@ -73,10 +73,10 @@ jobs:
     - name: 🚀 Iniciar servicios con Docker Compose
       run: |
         echo "🚀 Iniciando Odoo y PostgreSQL con Docker Compose..."
-        docker-compose up -d db odoo
+        docker compose up -d db odoo
         
         echo "⏳ Esperando que PostgreSQL esté listo..."
-        timeout 60 bash -c 'until docker-compose exec -T db pg_isready -U odoo; do 
+        timeout 60 bash -c 'until docker compose exec -T db pg_isready -U odoo; do 
           echo "⏳ Esperando PostgreSQL... ($(date))"
           sleep 3
         done'
@@ -93,10 +93,10 @@ jobs:
       if: always()
       run: |
         echo "📋 Logs de PostgreSQL:"
-        docker-compose logs db | tail -20
+        docker compose logs db | tail -20
         echo ""
         echo "📋 Logs de Odoo:"
-        docker-compose logs odoo | tail -30
+        docker compose logs odoo | tail -30
 
     - name: 🔍 Verificar conectividad con Odoo
       run: |
@@ -416,7 +416,7 @@ jobs:
       if: always()
       run: |
         echo "🧹 Limpiando servicios Docker..."
-        docker-compose down -v
+        docker compose down -v
         docker system prune -f
 
   test-frontend:
@@ -485,7 +485,7 @@ jobs:
     - name: 🐳 Iniciar stack completo
       run: |
         echo "🐳 Iniciando stack completo con Docker Compose..."
-        docker-compose up -d
+        docker compose up -d
         
         echo "⏳ Esperando que todos los servicios estén listos..."
         timeout 300 bash -c 'until curl -f http://localhost:8069/web/health && curl -f http://localhost:4000/health && curl -f http://localhost:4200 > /dev/null 2>&1; do 
@@ -522,7 +522,7 @@ jobs:
       if: always()
       run: |
         echo "🧹 Limpiando servicios Docker..."
-        docker-compose down -v
+        docker compose down -v
 
   build-production:
     name: 🚀 Build Production
@@ -557,7 +557,7 @@ jobs:
     - name: 🐳 Build imágenes Docker para producción
       run: |
         echo "🐳 Construyendo imágenes Docker..."
-        docker-compose build --no-cache
+        docker compose build --no-cache
         
         echo "📝 Listando imágenes creadas..."
         docker images | grep galeria
@@ -569,8 +569,8 @@ jobs:
         path: |
           middleware/dist/
           frontend/dist/
-          docker-compose.yml
-          docker-compose.prod.yml
+          docker compose.yml
+          docker compose.prod.yml
         retention-days: 90
 
     - name: 🎉 Deployment preparado
