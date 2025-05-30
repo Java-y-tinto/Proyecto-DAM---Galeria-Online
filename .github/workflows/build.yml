@@ -36,6 +36,7 @@ jobs:
           version: latest
 
     - name: 🔧 Configurar variables de entorno para testing
+      working-directory: ./middleware
       run: |
         echo "🔧 Creando archivo .env para testing..."
         cat > .env << 'EOF'
@@ -71,6 +72,7 @@ jobs:
         npm run compile
 
     - name: 🚀 Iniciar servicios con Docker Compose
+      working-directory: ./backend
       run: |
         echo "🚀 Iniciando Odoo y PostgreSQL con Docker Compose..."
         docker compose up -d db odoo
@@ -90,6 +92,7 @@ jobs:
         echo "✅ Servicios iniciados correctamente"
 
     - name: 📋 Mostrar logs de servicios
+      working-directory: ./backend
       if: always()
       run: |
         echo "📋 Logs de PostgreSQL:"
@@ -404,6 +407,7 @@ jobs:
         retention-days: 30
 
     - name: 📋 Mostrar logs de servicios si hay fallos
+      working-directory: ./backend
       if: failure()
       run: |
         echo "📋 Logs de PostgreSQL:"
@@ -413,6 +417,7 @@ jobs:
         docker compose logs odoo
 
     - name: 🧹 Limpiar servicios
+      working-directory: ./backend
       if: always()
       run: |
         echo "🧹 Limpiando servicios Docker..."
@@ -483,6 +488,7 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
 
     - name: 🐳 Iniciar stack completo
+      working-directory: ./backend
       run: |
         echo "🐳 Iniciando stack completo con Docker Compose..."
         docker compose up -d
@@ -520,6 +526,7 @@ jobs:
 
     - name: 🧹 Limpiar servicios E2E
       if: always()
+      working-directory: ./backend
       run: |
         echo "🧹 Limpiando servicios Docker..."
         docker compose down -v
@@ -555,6 +562,7 @@ jobs:
         npm run build -- --configuration=production
 
     - name: 🐳 Build imágenes Docker para producción
+      working-directory: ./backend
       run: |
         echo "🐳 Construyendo imágenes Docker..."
         docker compose build --no-cache
@@ -569,8 +577,8 @@ jobs:
         path: |
           middleware/dist/
           frontend/dist/
-          docker compose.yml
-          docker compose.prod.yml
+          docker-compose.yml
+          docker-compose.prod.yml
         retention-days: 90
 
     - name: 🎉 Deployment preparado
