@@ -165,7 +165,7 @@ async function setupTestData(client) {
       // await client.write('product.product', [existingProd[0].id], { x_featured: prodData.x_featured });
     } else {
       try {
-        const productId = await client.create('product.produtemplatect', prodData);
+        const productId = await client.create('product.product', prodData);
         console.log(`✅ Producto creado: ${prodData.name} (ID: ${productId}) (Destacado: ${!!prodData.x_featured})`);
       } catch (error) {
          console.error(`❌ Error creando producto ${prodData.name}: ${error.message}`);
