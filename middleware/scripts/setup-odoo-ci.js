@@ -142,12 +142,12 @@ async function setupTestData(client) {
   // Usamos product.product porque es el modelo vendible que puede tener variantes.
   // Los campos de product.template (como x_featured si se añade ahí) son heredados.
   const productsData = [
-    { name: 'Sueño Cósmico', list_price: 150.00, categ_id: categoryIds['Abstractos'], type: 'product', sale_ok: true,  },
-    { name: 'Atardecer en la Montaña', list_price: 220.00, categ_id: categoryIds['Paisajes'], type: 'product', sale_ok: true,  },
-    { name: 'Mirada Enigmática', list_price: 300.00, categ_id: categoryIds['Retratos'], type: 'product', sale_ok: true,  },
-    { name: 'Ciudad de Neón', list_price: 180.00, categ_id: categoryIds['Arte Digital'], type: 'product', sale_ok: true,  },
-    { name: 'Explosión de Color', list_price: 165.00, categ_id: categoryIds['Abstractos'], type: 'product', sale_ok: true,  },
-    { name: 'Bosque Sereno', list_price: 250.00, categ_id: categoryIds['Paisajes'], type: 'product', sale_ok: true,  },
+    { name: 'Sueño Cósmico', list_price: 150.00, categ_id: categoryIds['Abstractos'], type: 'consu', sale_ok: true,  },
+    { name: 'Atardecer en la Montaña', list_price: 220.00, categ_id: categoryIds['Paisajes'], type: 'consu', sale_ok: true,  },
+    { name: 'Mirada Enigmática', list_price: 300.00, categ_id: categoryIds['Retratos'], type: 'consu', sale_ok: true,  },
+    { name: 'Ciudad de Neón', list_price: 180.00, categ_id: categoryIds['Arte Digital'], type: 'consu', sale_ok: true,  },
+    { name: 'Explosión de Color', list_price: 165.00, categ_id: categoryIds['Abstractos'], type: 'consu', sale_ok: true,  },
+    { name: 'Bosque Sereno', list_price: 250.00, categ_id: categoryIds['Paisajes'], type: 'consu', sale_ok: true,  },
   ];
 
   console.log('🖼️ Creando productos...');
@@ -165,7 +165,7 @@ async function setupTestData(client) {
       // await client.write('product.product', [existingProd[0].id], { x_featured: prodData.x_featured });
     } else {
       try {
-        const productId = await client.create('product.product', prodData);
+        const productId = await client.create('product.produtemplatect', prodData);
         console.log(`✅ Producto creado: ${prodData.name} (ID: ${productId}) (Destacado: ${!!prodData.x_featured})`);
       } catch (error) {
          console.error(`❌ Error creando producto ${prodData.name}: ${error.message}`);
