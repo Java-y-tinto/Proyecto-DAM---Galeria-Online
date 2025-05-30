@@ -166,20 +166,18 @@ async function setupTestData(client) {
     } else {
       try {
         const productId = await client.create('product.template', prodData);
-        console.log(`✅ Producto creado: ${prodData.name} (ID: ${productId}) (Destacado: ${!!prodData.x_featured})`);
+        console.log(`✅ Producto creado: ${prodData.name} (ID: ${productId})`);
       } catch (error) {
          console.error(`❌ Error creando producto ${prodData.name}: ${error.message}`);
-         if (error.message && error.message.includes('x_featured')) {
-            console.error('   ↪️ Esto puede ser porque el campo "x_featured" no existe en el modelo "product.template".');
+         if (error.message) {
+            console.error(error.message);
          }
       }
     }
   }
 
   const totalProducts = await client.read('product.product', []);
-  const featuredProducts = await client.searchRead('product.product', [['x_featured', '=', true]]);
   console.log(`📊 Total de productos en Odoo: ${totalProducts}`);
-  console.log(`⭐ Total de productos destacados: ${featuredProducts}`);
 }
 async function simpleAuthenticatedCall(client) {
   console.log('🧪 Intentando llamada autenticada simple: leer nombre de usuario actual...');
