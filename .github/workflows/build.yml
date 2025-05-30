@@ -103,6 +103,16 @@ jobs:
 
     - name: 🎭 Configurar Odoo y datos de prueba
       working-directory: ./middleware
+      env:
+        NODE_ENV: test
+        CI: true
+        ODOO_BASE_URL: http://localhost
+        ODOO_PORT: 8069
+        ODOO_DB: postgres
+        ODOO_USERNAME: odoo
+        ODOO_PASSWORD: odoo
+        JWT_SECRET: test-jwt-secret-key-for-ci-testing-2024
+        JWT_EXPIRES_IN: 2h
       run: |
         echo "🎭 Configurando Odoo para testing usando script dedicado..."
         npm run setup:ci
