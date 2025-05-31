@@ -143,44 +143,62 @@ jobs:
         run: npm run testIntegrations
   
   build-and-deploy:
-    name: Build and push docker images
+    name: Build and Push Docker Images
     runs-on: ubuntu-22.04
     needs: test-backend
+
+    permissions: # Permisos necesarios para GHCR
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Log into GHCR
+      - name: Log into GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: extract metadata for Docker (tags and labels)
-        id: meta
+
+      # --- Metadatos para el Middleware ---
+      - name: Extract metadata for Middleware image
+        id: meta_middleware # ID único para este paso
         uses: docker/metadata-action@v5
         with:
-          images: | 
-            ghcr.io/${{ github.repository_owner }}/nginx-frontend
-            ghcr.io/${{ github.repository_owner }}/middleware
-        
-      - name: build and push image from middleware
+          # Solo la imagen del middleware aquí
+          images: ghcr.io/${{ github.repository }}/middleware
+
+      # --- Metadatos para el Frontend ---
+      - name: Extract metadata for Frontend image
+        id: meta_frontend # ID único para este paso
+        uses: docker/metadata-action@v5
+        with:
+          # Solo la imagen del frontend aquí
+          images: ghcr.io/${{ github.repository }}/nginx-frontend
+
+      # --- Construcción del Middleware ---
+      - name: Build and push Middleware image
         uses: docker/build-push-action@v6
         with:
           context: ./middleware
           file: ./middleware/dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags_middleware }}
-          labels: ${{ steps.meta.outputs.labels_middleware }}
+          # Apunta a los outputs del paso 'meta_middleware'
+          tags: ${{ steps.meta_middleware.outputs.tags }}
+          labels: ${{ steps.meta_middleware.outputs.labels }}
 
-      - name: build and push image from frontend
+      # --- Construcción del Frontend ---
+      - name: Build and push NGINX + Frontend image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./frontend/dockerfile
+          # El contexto es la raíz del repo para que el Dockerfile pueda acceder a la carpeta 'frontend'
+          context: . 
+          file: ./frontend/dockerfile # La ruta al Dockerfile desde la raíz
           push: true
-          tags: ${{ steps.meta.outputs.tags_nginx-frontend }}
-          labels: ${{ steps.meta.outputs.labels_nginx-frontend }}
-          
+          # Apunta a los outputs del paso 'meta_frontend'
+          tags: ${{ steps.meta_frontend.outputs.tags }}
+          labels: ${{ steps.meta_frontend.outputs.labels }}
+
       
