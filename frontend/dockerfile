@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY fontend/package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build --configuration=production
