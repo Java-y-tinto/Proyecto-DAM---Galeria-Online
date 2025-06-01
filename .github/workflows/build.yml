@@ -223,7 +223,7 @@ jobs:
             echo "Descargando las imagenes..."
             docker compose pull nginx middleware
             echo "Reiniciando contenedores"
-            docker compose up -d --remove-orophans
+            docker compose up -d --remove-orphans
             echo "Limpiando images viejas no usadas"
             docker image prune -af
             echo "Despliegue completado."
