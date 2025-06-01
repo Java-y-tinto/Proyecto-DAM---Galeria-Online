@@ -2,6 +2,7 @@ import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import clienteEntorno from '../../clientVariables.environment';
+import { environment } from '../../../environments/environments';
 @Component({
   selector: 'app-dropdown-menu',
   imports: [NgClass],
@@ -11,6 +12,7 @@ import clienteEntorno from '../../clientVariables.environment';
 export class DropdownMenuComponent implements OnDestroy {
   isDropdownVisible = false;
   private hideDropdownTimeout: any = null;
+  url = environment.graphqlUrl
   protected environment = clienteEntorno
   constructor(
     private router: Router

@@ -8,7 +8,7 @@ import { inject } from '@angular/core';
 import { CartDropdownMenuComponent } from './components/cart-dropdown-menu/cart-dropdown-menu.component';
 import { SearchBarComponent } from "./components/search-bar/search-bar.component";
 import { NotificationContainerComponent } from "./components/notification-container/notification-container.component";
-
+import { environment } from '../environments/environments';
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, DropdownMenuComponent, CartDropdownMenuComponent, SearchBarComponent, NotificationContainerComponent],
@@ -25,6 +25,7 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log(environment.name,environment.production,environment.graphqlUrl,environment.odooUrl);
     const token = localStorage.getItem('token');
     if (token) {
       this.environment.setIsLoggedIn(true);
