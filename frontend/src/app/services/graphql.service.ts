@@ -418,22 +418,16 @@ export class GraphqlService {
     );
   }
   addToCart(productId: number) {
-    console.log('🚀 [GraphQL Service] *** INICIANDO addToCart ***');
-    console.log('🚀 [GraphQL Service] ProductId:', productId, 'Tipo:', typeof productId);
+    
+    
 
     return this.apollo.mutate({
       mutation: ADD_TO_CART_MUTATION,
       variables: { productId },
     }).pipe(
       tap(result => {
-        console.log('📥 [GraphQL Service] *** RESPUESTA APOLLO ***');
-        console.log('📥 [GraphQL Service] result completo:', result);
-        console.log('📥 [GraphQL Service] result.data:', result.data);
-        console.log('📥 [GraphQL Service] result.errors:', result.errors);
-        console.log('📥 [GraphQL Service] result.loading:', result.loading);
       }),
       map((result) => {
-        console.log('🔄 [GraphQL Service] *** MAPEANDO RESULTADO ***');
 
         if (result.errors && result.errors.length > 0) {
           console.error('❌ [GraphQL Service] GraphQL Errors:', result.errors);
@@ -456,7 +450,6 @@ export class GraphqlService {
 
 
         const finalResult = (result as any).data.addToCart;
-        console.log('✅ [GraphQL Service] Resultado procesado:', finalResult);
         return this.handleOperationResult(
           finalResult,
           finalResult.success ? 'Producto añadido al carrito correctamente' : undefined,
@@ -473,7 +466,7 @@ export class GraphqlService {
     )
   }
   getCart(): Observable<Cart | null> {
-    console.log('🚀 [GraphQL Service] Iniciando query getCart...');
+    
 
     return this.apollo
       .query<{ getCart: Cart | null }>({
@@ -483,14 +476,14 @@ export class GraphqlService {
       })
       .pipe(
         tap((result: any) => {
-          console.log('📥 [GraphQL Service] Respuesta getCart recibida:', result);
+          
         }),
         map((result: ApolloQueryResult<{ getCart: Cart | null }>) => {
           if (result.errors) {
             console.error('❌ [GraphQL Service] Errores en getCart:', result.errors);
             return null;
           }
-          console.log('✅ [GraphQL Service] getCart exitoso:', result.data.getCart);
+          
           return result.data.getCart;
         })
       );
@@ -516,7 +509,7 @@ export class GraphqlService {
       );
   }
   removeFromCart(lineId: number): Observable<CartOperationResult> {
-    console.log('🚀 [GraphQL Service] Removiendo producto del carrito, lineId:', lineId);
+    
 
     return this.apollo
       .mutate<{ removeFromCart: CartOperationResult }>({
@@ -525,7 +518,7 @@ export class GraphqlService {
       })
       .pipe(
         tap(result => {
-          console.log('📥 [GraphQL Service] Respuesta removeFromCart:', result);
+          
         }),
         map((result) => {
           if (result.errors) {
@@ -556,7 +549,7 @@ export class GraphqlService {
 
   // NUEVA: Vaciar carrito completo
     clearCart(): Observable<CartOperationResult> {
-    console.log('🚀 [GraphQL Service] Vaciando carrito...');
+    
 
     return this.apollo
       .mutate<{ clearCart: CartOperationResult }>({
@@ -564,7 +557,7 @@ export class GraphqlService {
       })
       .pipe(
         tap(result => {
-          console.log('📥 [GraphQL Service] Respuesta clearCart:', result);
+          
         }),
         map((result) => {
           if (result.errors) {

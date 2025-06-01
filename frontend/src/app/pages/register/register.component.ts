@@ -47,7 +47,6 @@ export class RegisterComponent {
           this.registerForm.get('password')?.value)
         );
       let data: AuthPayload = ((callback.data as any).registerUser) as AuthPayload;
-      console.log(data)
       if (!data.success && data.message.toLocaleLowerCase() === "email ya registrado") {
         this.emailalreadyexists = true;
       }

@@ -120,10 +120,6 @@ export class CartService {
 
   return this.graphqlService.addToCart(productId).pipe(
     tap((result: CartOperationResult) => {
-      console.log('📥 [Cart Service] Resultado recibido:', result);
-      console.log('📥 [Cart Service] result.success:', result.success);
-      console.log('📥 [Cart Service] result.message:', result.message);
-      
       if (result.success === true) {
         console.log('✅ [Cart Service] Producto agregado exitosamente');
         // Recargar carrito para obtener datos actualizados del servidor

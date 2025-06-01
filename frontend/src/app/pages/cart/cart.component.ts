@@ -3,7 +3,7 @@ import { CommonModule, CurrencyPipe, AsyncPipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { CartService } from '../../services/cart.service';
 import { CartLine } from '../../services/graphql.service';
-
+import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-cart',
   standalone: true,
@@ -85,7 +85,7 @@ export class CartComponent implements OnInit {
   proceedToCheckout(): void {
     console.log('💳 [Cart Page] Procediendo al checkout...');
     
-    window.location.href = ('http://localhost:8069' + this.checkout_url); 
+    window.location.href = (environment.odooUrl + this.checkout_url); 
   }
 
   /**

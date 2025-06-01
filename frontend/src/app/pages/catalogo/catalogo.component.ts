@@ -30,7 +30,6 @@ interface FiltroAgrupado {
   styleUrls: ['./catalogo.component.scss']
 })
 export class CatalogComponent implements OnInit, OnDestroy {
-  // Ya NO necesitamos @Input() para la categoría
 
   categoriaActual: string = ""; // Propiedad para guardar la categoría leída
   tituloPagina: string = 'Catálogo';
@@ -44,7 +43,6 @@ export class CatalogComponent implements OnInit, OnDestroy {
   constructor(
     private route: ActivatedRoute,
     private dbService: GraphqlService
-    // , private productService: ProductService // <-- Inyectarías tu servicio aquí
   ) { }
 
  toggleFiltro(grupo: FiltroAgrupado, valor: FiltroData): void {
@@ -79,7 +77,7 @@ get productosFiltrados(): Product[] {
 
   ngOnInit(): void {
     console.log('CatalogComponent inicializado.');
-    // 3. Suscríbete al Observable paramMap (RECOMENDADO)
+    // 3. Suscríbete al Observable paramMap 
     this.routeSub = this.route.paramMap.subscribe(params => {
       // Este código se ejecuta CADA VEZ que cambian los parámetros de la ruta
 
@@ -92,7 +90,7 @@ get productosFiltrados(): Product[] {
         // 5. Llama a la lógica para actualizar la página con la nueva categoría
         this.actualizarPagina();
       } else {
-        // Manejar el caso en que el parámetro no exista (opcional)
+        // Manejar el caso en que el parámetro no exista
         console.error("Parámetro 'categoria' no encontrado en la URL.");
         this.categoriaActual = "null";
         this.tituloPagina = 'Categoría no válida';
@@ -102,16 +100,7 @@ get productosFiltrados(): Product[] {
       }
     });
 
-    /* --- Alternativa con Snapshot (Menos recomendada para este caso) ---
-    const categoriaSnapshot = this.route.snapshot.paramMap.get('categoria');
-    console.log('Categoría leída con snapshot:', categoriaSnapshot);
-    if (categoriaSnapshot) {
-      this.categoriaActual = categoriaSnapshot;
-      this.actualizarPagina();
-    } else {
-      console.error("Parámetro 'categoria' no encontrado en snapshot.");
-    }
-    */
+
   }
 
   ngOnDestroy(): void {
@@ -150,7 +139,6 @@ get productosFiltrados(): Product[] {
         if (!agrupados[nombre]) {
           agrupados[nombre] = new Set();
         }
-        //agrupados[nombre].add();
         attr.values.forEach(val => {
           agrupados[nombre].add(val.name);
         })
@@ -171,9 +159,5 @@ get productosFiltrados(): Product[] {
 }
 
 
-
-  // ... (resto de funciones helper: getSimulatedFilters, getSimulatedProducts, capitalize) ...
-
-  //getSimulatedProducts(cat: string): ProductoData[] { this.productos.push({ id: 'producto1', nombre: 'Producto 1', precio: '100', imageSrc: '', categoria: cat, descripcion: 'Descripción del producto 1' }); return this.productos; }
   capitalize(s: string): string { if (!s) return ''; return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
 }

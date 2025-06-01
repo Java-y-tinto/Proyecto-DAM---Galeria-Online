@@ -74,48 +74,9 @@ cargarProducto(): void {
 }
   
 
-/*
-  cargarProducto(): void {
-    this.loading = true;
-    // Llamada al middleware para obtener la información del producto
-    this.http.get<ProductoDetalle>(`${environment.apiUrl}/api/productos/${this.productoId}`)
-      .subscribe({
-        next: (data) => {
-          this.producto = data;
-          if (data.imagenes && data.imagenes.length > 0) {
-            this.imagenesProducto = data.imagenes;
-          }
-          this.cargarProductosRelacionados();
-          this.loading = false;
-        },
-        error: (err) => {
-          console.error('Error al cargar el producto:', err);
-          this.error = 'No se pudo cargar la información del producto.';
-          this.loading = false;
-        }
-      });
-  }
-      */
-/*
-  cargarProductosRelacionados(): void {
-    if (this.producto) {
-      // Llamada al middleware para obtener productos relacionados por categoría
-      this.http.get<ProductoRelacionado[]>(`${environment.apiUrl}/api/productos/relacionados/${this.producto.categoria}/${this.productoId}`)
-        .subscribe({
-          next: (data) => {
-            this.productosRelacionados = data;
-          },
-          error: (err) => {
-            console.error('Error al cargar productos relacionados:', err);
-          }
-        });
-    }
-  }
-
-*/  // Añadir al carrito
+  // Añadir al carrito
   anadirAlCarrito(): void {
     if (this.producto) {
-      // Lógica para añadir al carrito - puedes implementar un servicio de carrito
       console.log('Añadiendo al carrito:', this.producto);
       this.cartService.addProduct(Number(this.producto.id), this.producto).subscribe({
         next: (result) => {
