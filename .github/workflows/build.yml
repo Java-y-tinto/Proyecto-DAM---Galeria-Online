@@ -33,10 +33,6 @@ jobs:
           HOST: db
           USER: odoo
           PASSWORD: odoo
-          # Odoo intentará conectarse a una base de datos 'odoo' por defecto.
-          # Si quieres que se conecte a 'postgres' inicialmente, podrías añadir:
-          # DB_NAME: postgres 
-          # Pero para este flujo, no es estrictamente necesario ya que creamos 'odoo_test' explícitamente.
           
     steps:
       - name: Checkout code

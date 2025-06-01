@@ -199,14 +199,12 @@ async function runTests() {
   if(!testResults.searchProducts) allTestsPassed = false;
 
   // Test 7: Obtener productos relacionados (Query getRelatedProducts)
-  // Esta query puede depender de la lógica de tu Odoo (ej. accesorios, productos alternativos)
   console.log('\n--- Test: Query getRelatedProducts ---');
   if (testProductId) {
     res = await graphqlQuery(
       `query Related($productId: String!) { getRelatedProducts(productId: $productId, limit: 2) { id name } }`,
       { productId: testProductId }
     );
-    // Es difícil hacer una aserción fuerte sin conocer la lógica de Odoo.
     // Simplemente verificamos que devuelve un array (puede ser vacío).
     testResults.getRelatedProducts = 
       assert(res.data?.getRelatedProducts && Array.isArray(res.data.getRelatedProducts), `Obtener productos relacionados para ID ${testProductId}`);
