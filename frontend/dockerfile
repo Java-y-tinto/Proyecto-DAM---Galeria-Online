@@ -6,16 +6,8 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ .
-RUN echo "--- Contenido de /app/package.json ---" && cat /app/package.json && echo "--- Fin de package.json ---"
-RUN echo "--- Scripts NPM disponibles en /app ---" && npm run && echo "--- Fin de scripts NPM ---"
 
-RUN npm run build # Ejecuta el build de Angular
-
-# ----- PASOS DE DEPURACIÓN ADICIONALES -----
-RUN echo "Contenido de /app/dist/ (después del build):" && ls -la /app/dist/
-RUN echo "Contenido de /app/dist/frontend/ (después del build):" && ls -la /app/dist/frontend/
-RUN echo "Contenido de /app/dist/frontend/browser/ (después del build, si existe):" && (ls -la /app/dist/frontend/browser/ || echo "Directorio /app/dist/frontend/browser no encontrado o vacío")
-# ----- FIN DE PASOS DE DEPURACIÓN -----
+RUN npm run build:prod
 
 # despliegue con nginx
 FROM nginx:stable-alpine
