@@ -7,6 +7,7 @@ import { HttpLink } from 'apollo-angular/http';
 import { ApolloLink, InMemoryCache } from '@apollo/client/core';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import { environment } from '../environments/environments';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -70,7 +71,7 @@ export const appConfig: ApplicationConfig = {
           basic, 
           auth, 
           httpLink.create({
-            uri: 'http://localhost:4000/graphql',
+            uri: environment.graphqlUrl,
           })
         ]),
         cache: new InMemoryCache(),

@@ -25,6 +25,7 @@ const limiter = rateLimit({
 
 const startServer = async () => {
   const app = express();
+  app.set('trust proxy', 1);
   const port = process.env.PORT || 4000;
 
   console.log('🔗 Conectando a Odoo...');
