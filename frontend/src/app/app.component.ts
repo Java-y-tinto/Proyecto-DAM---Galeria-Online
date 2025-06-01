@@ -8,7 +8,7 @@ import { inject } from '@angular/core';
 import { CartDropdownMenuComponent } from './components/cart-dropdown-menu/cart-dropdown-menu.component';
 import { SearchBarComponent } from "./components/search-bar/search-bar.component";
 import { NotificationContainerComponent } from "./components/notification-container/notification-container.component";
-import { environment } from '../environments/environments';
+import { environment } from '../environments/environment';
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, DropdownMenuComponent, CartDropdownMenuComponent, SearchBarComponent, NotificationContainerComponent],

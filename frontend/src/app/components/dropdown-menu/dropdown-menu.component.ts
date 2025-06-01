@@ -2,7 +2,7 @@ import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 import clienteEntorno from '../../clientVariables.environment';
-import { environment } from '../../../environments/environments';
+import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-dropdown-menu',
   imports: [NgClass],
