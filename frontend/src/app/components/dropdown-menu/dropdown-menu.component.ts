@@ -12,7 +12,7 @@ import { environment } from '../../../environments/environment';
 export class DropdownMenuComponent implements OnDestroy {
   isDropdownVisible = false;
   private hideDropdownTimeout: any = null;
-  url = environment.graphqlUrl
+  url = environment.odooUrl
   protected environment = clienteEntorno
   constructor(
     private router: Router
