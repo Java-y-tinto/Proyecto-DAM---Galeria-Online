@@ -5,6 +5,23 @@ import { CartService, CartState } from './cart.service';
 import { GraphqlService, Cart, Product, CartOperationResult } from './graphql.service';
 import { NotificationService } from './notification.service';
 import { of, throwError } from 'rxjs';
+import { Apollo } from 'apollo-angular';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+
+const apolloSpy = jasmine.createSpyObj('Apollo', ['query', 'mutate']);
+
+TestBed.configureTestingModule({
+  imports: [
+    ReactiveFormsModule
+  ],
+  providers: [
+    {provide: Apollo, useValue: apolloSpy},
+    CartService,
+    FormBuilder
+
+  ]
+});
+
 
 describe('CartService', () => {
   let service: CartService;
@@ -67,7 +84,7 @@ describe('CartService', () => {
 
   describe('loadCart', () => {
     it('should load cart successfully and update cart$', (done) => {
-      mockGraphqlService.getCart.and.returnValue(of(mockCart));
+      mockGraphqlService.getCart.and.returnValue(of(mockCart.cart));
 
       service.loadCart().subscribe({
         next: (cart) => {
@@ -118,7 +135,7 @@ describe('CartService', () => {
 
     it('should add product to cart successfully', (done) => {
       mockGraphqlService.addToCart.and.returnValue(of(mockSuccessResult));
-      mockGraphqlService.getCart.and.returnValue(of(mockCart));
+      mockGraphqlService.getCart.and.returnValue(of(mockCart.cart));
 
       service.addProduct(1).subscribe({
         next: (result: any) => {
