@@ -142,7 +142,7 @@ jobs:
 
         run: npm run testIntegrations
   
-  build-and-deploy:
+  build-and-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-22.04
     needs: test-backend
@@ -201,4 +201,29 @@ jobs:
           tags: ${{ steps.meta_frontend.outputs.tags }}
           labels: ${{ steps.meta_frontend.outputs.labels }}
 
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-22.04
+    needs: build-and-push
+
+    environment: 
+      name: PRODUCCION
+    
+    steps:
+      - name: Desplegar en el servidor mediante SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            echo "Conectado al servidor de producción como ${{ secrets.SSH_USERNAME }}..."
+            cd /home/deployer/online-gallery
+            echo "Descargando las imagenes..."
+            docker compose pull nginx middleware
+            echo "Reiniciando contenedores"
+            docker compose up -d --remove-orophans
+            echo "Limpiando images viejas no usadas"
+            docker image prune -af
+            echo "Despliegue completado."
       
