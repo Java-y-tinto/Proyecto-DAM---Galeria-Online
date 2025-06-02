@@ -63,6 +63,14 @@ type CartOperationResult {
   access_url: String
 }
 
+type ProductOperationResult {
+  success: Boolean!
+  message: String!
+  product_id: Int
+  product: Product
+}
+
+
 type CartOrder {
   id: Int!
   name: String!
