@@ -18,8 +18,8 @@ import * as ImagePicker from 'expo-image-picker';
 // Navegación y Tipos
 import { StackScreenProps } from '@react-navigation/stack';
 import { RootStackParamsList } from '../types/navigation.types';
-// Asegúrate de que UPDATE_PRODUCT esté definido en tu archivo de operaciones y que coincida con la mutación que proporcionaste
-import { GET_PRODUCT_BY_ID, UPDATE_PRODUCT, Product as ProductType } from '../graphql/functions'; 
+// Asegúrate de que CREATE_PRODUCT esté definido e importado
+import { GET_PRODUCT_BY_ID, UPDATE_PRODUCT, CREATE_PRODUCT, Product as ProductType } from '../graphql/functions'; 
 
 // Tipado para las props de esta pantalla
 type ProductDetailProps = StackScreenProps<RootStackParamsList, 'ProductDetail'>;
@@ -28,7 +28,7 @@ type ProductDetailProps = StackScreenProps<RootStackParamsList, 'ProductDetail'>
 interface FormData {
   name: string;
   list_price: string; 
-  image_1920: string | null; 
+  image_1920: string | null; // Base64 string o null
 }
 
 interface FormErrors {
@@ -36,19 +36,37 @@ interface FormErrors {
   list_price?: string;
 }
 
-// Define el tipo para la respuesta de la mutación, basándote en tu GQL
-interface UpdateProductData {
-  updateProduct: {
+// Define el tipo para la respuesta de la mutación CREATE_PRODUCT
+interface CreateProductData {
+  createProduct: {
     success: boolean;
-    message?: string; // message es opcional
-    product_id?: number; // product_id es opcional
-    product?: ProductType; // product es opcional
+    message?: string;
+    product_id?: number;
+    product?: ProductType;
+  };
+}
+// Define el tipo para las variables de la mutación CREATE_PRODUCT
+interface CreateProductVariables {
+  input: { // ProductCreateInput!
+    name: string;
+    list_price: number;
+    image_1920?: string | null; // Asumiendo que la imagen es opcional al crear
+    // Añade otros campos que tu ProductCreateInput requiera
   };
 }
 
-// Define el tipo para las variables de la mutación
+// Define el tipo para la respuesta de la mutación UPDATE_PRODUCT
+interface UpdateProductData {
+  updateProduct: {
+    success: boolean;
+    message?: string;
+    product_id?: number;
+    product?: ProductType;
+  };
+}
+// Define el tipo para las variables de la mutación UPDATE_PRODUCT
 interface UpdateProductVariables {
-  id: number; // ID como número
+  id: number;
   input: {
     name?: string;
     list_price?: number;
@@ -58,48 +76,86 @@ interface UpdateProductVariables {
 
 
 const ProductDetailScreen: React.FC<ProductDetailProps> = ({ route, navigation }) => {
-  const { productId } = route.params; 
+  const { productId } = route.params; // productId será undefined en modo "crear"
+  const isEditMode = !!productId; // Determina si estamos en modo edición
 
-  const [formData, setFormData] = useState<FormData | null>(null);
+  const [formData, setFormData] = useState<FormData>({ // Inicializar siempre el formulario
+    name: '',
+    list_price: '',
+    image_1920: null,
+  });
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const { data, loading, error: queryError } = useQuery<{ productById: ProductType }>( // Renombrado error a queryError
+  // Query para obtener los datos del producto (solo en modo edición)
+  const { data, loading: queryLoading, error: queryError } = useQuery<{ productById: ProductType }>(
     GET_PRODUCT_BY_ID,
-    { variables: { id: productId } }
+    { 
+      variables: { id: productId },
+      skip: !isEditMode, // No ejecutar si estamos en modo "crear"
+    }
   );
 
   // Mutación para actualizar el producto
-  const [updateProductMutation, { loading: saving, error: mutationGqlError }] = useMutation<UpdateProductData, UpdateProductVariables>( // Renombrado error a mutationGqlError
-    UPDATE_PRODUCT, // Usa tu mutación importada
+  const [updateProductMutation, { loading: updating, error: updateError }] = useMutation<UpdateProductData, UpdateProductVariables>(
+    UPDATE_PRODUCT,
     {
       onCompleted: (response) => {
         const updateResult = response.updateProduct;
         if (updateResult.success) {
           Alert.alert('Éxito', updateResult.message || 'Producto actualizado correctamente.');
-          console.log('Producto actualizado:', updateResult.product || updateResult.product_id);
           navigation.goBack(); 
         } else {
           Alert.alert('Error', updateResult.message || 'No se pudo actualizar el producto.');
         }
       },
-      onError: (error) => { // Este onError es para errores de red/GraphQL, no errores de lógica de negocio
+      onError: (error) => {
         Alert.alert('Error', `No se pudo guardar el producto: ${error.message}`);
-        console.error('Error al guardar:', error);
       },
-      refetchQueries: [{ query: GET_PRODUCT_BY_ID, variables: { id: productId } }]
+      // Refrescar la query del producto después de la mutación
+      refetchQueries: isEditMode ? [{ query: GET_PRODUCT_BY_ID, variables: { id: productId } }] : [],
     }
   );
 
+  // Mutación para crear el producto
+  const [createProductMutation, { loading: creating, error: createError }] = useMutation<CreateProductData, CreateProductVariables>(
+    CREATE_PRODUCT,
+    {
+      onCompleted: (response) => {
+        const createResult = response.createProduct;
+        if (createResult.success) {
+          Alert.alert('Éxito', createResult.message || 'Producto creado correctamente.');
+          // Podrías navegar al nuevo producto o a la lista
+          // navigation.replace('ProductDetail', { productId: createResult.product_id?.toString() });
+          navigation.goBack(); 
+        } else {
+          Alert.alert('Error', createResult.message || 'No se pudo crear el producto.');
+        }
+      },
+      onError: (error) => {
+        Alert.alert('Error', `No se pudo crear el producto: ${error.message}`);
+      },
+      // Opcional: Refrescar la lista de productos si es necesario
+      // refetchQueries: [{ query: GET_PRODUCTS_BY_CATEGORY, variables: { categoryName: 'All' } }], // O la categoría relevante
+    }
+  );
+
+  // Efecto para rellenar el formulario cuando los datos del producto se cargan (en modo edición)
   useEffect(() => {
-    if (data?.productById) {
+    if (isEditMode && data?.productById) {
       const product = data.productById;
       setFormData({
         name: product.name,
         list_price: product.list_price.toString(),
         image_1920: product.image_1920, 
       });
+      // Cambiar el título de la pantalla en modo edición
+      navigation.setOptions({ title: 'Editar Producto' });
+    } else if (!isEditMode) {
+      // Asegurar que el formulario esté vacío para el modo crear y establecer título
+      setFormData({ name: '', list_price: '', image_1920: null });
+      navigation.setOptions({ title: 'Crear Nuevo Producto' });
     }
-  }, [data]);
+  }, [data, isEditMode, navigation]);
 
   const handleOpenCamera = async () => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
@@ -107,97 +163,85 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ route, navigation }
       Alert.alert('Permiso denegado', 'Necesitas dar permiso a la cámara para tomar una foto.');
       return;
     }
-
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1], 
-      quality: 0.7,
-      base64: true, 
+      allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true, 
     });
-
-    if (!result.canceled) {
-      if (result.assets && result.assets[0].base64) {
-        // Guardar la imagen como string Base64 directamente
-        setFormData(prev => prev ? { ...prev, image_1920: result.assets[0].base64! } : null);
-      }
+    if (!result.canceled && result.assets && result.assets[0].base64) {
+      setFormData(prev => ({ ...prev, image_1920: result.assets[0].base64! }));
     }
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => prev ? { ...prev, [field]: value } : null);
+    setFormData(prev => ({ ...prev, [field]: value }));
     if (field in errors) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
   const validateForm = (): boolean => {
-    if (!formData) return false;
     const newErrors: FormErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre del producto es obligatorio.';
-    }
+    if (!formData.name.trim()) newErrors.name = 'El nombre es obligatorio.';
     const price = parseFloat(formData.list_price);
-    if (isNaN(price) || price <= 0) {
-      newErrors.list_price = 'El precio debe ser un número positivo.';
-    }
-    // Podrías añadir validación para la imagen si es obligatoria
-    // if (!formData.image_1920) { /* ... */ }
-
+    if (isNaN(price) || price <= 0) newErrors.list_price = 'El precio debe ser un número positivo.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSaveChanges = () => {
-    if (validateForm() && formData) {
-      const numericProductId = parseInt(productId, 10); // Convertir productId a número
+    if (!validateForm()) {
+      Alert.alert('Atención', 'Por favor, corrige los errores en el formulario.');
+      return;
+    }
+
+    if (isEditMode) {
+      const numericProductId = parseInt(productId!, 10);
       if (isNaN(numericProductId)) {
-        Alert.alert('Error', 'ID de producto inválido.');
+        Alert.alert('Error', 'ID de producto inválido para actualizar.');
         return;
       }
-
-      console.log('Guardando cambios para ID:', numericProductId, 'con datos:', formData);
-      
-      updateProductMutation({ // Llamar a la función de mutación
+      updateProductMutation({
         variables: {
-          id: numericProductId, // ID como número
-          input: { // Objeto input anidado
+          id: numericProductId,
+          input: {
             name: formData.name,
             list_price: parseFloat(formData.list_price),
-            image_1920: formData.image_1920, // Envía la imagen Base64 (nueva o la original)
-
+            image_1920: formData.image_1920,
           }
         }
       });
-    } else {
-      console.log('Validación fallida', errors);
-
-       Alert.alert('Atención', 'Por favor, corrige los errores en el formulario.');
+    } else { // Modo Crear
+      createProductMutation({
+        variables: {
+          input: {
+            name: formData.name,
+            list_price: parseFloat(formData.list_price),
+            image_1920: formData.image_1920,
+            // Añade aquí otros campos que tu ProductCreateInput requiera
+            // category: 'Default', // Ejemplo si categoría es obligatoria
+            // x_featured: false,  // Ejemplo
+          }
+        }
+      });
     }
   };
 
-  if (loading) {
+  const isLoading = queryLoading || updating || creating;
+
+  if (queryLoading && isEditMode) { // Mostrar carga solo si es modo edición y está cargando datos iniciales
     return <View style={styles.center}><ActivityIndicator size="large" color="#0A2342" /></View>;
   }
-
-  if (queryError) {
-    return <View style={styles.center}><Text style={styles.errorText}>Error al cargar el producto: {queryError.message}</Text></View>;
+  if (queryError && isEditMode) {
+    return <View style={styles.center}><Text style={styles.errorText}>Error al cargar: {queryError.message}</Text></View>;
+  }
+  // No mostrar "No se encontraron datos" inmediatamente en modo crear
+  if (isEditMode && !queryLoading && !data?.productById) {
+     return <View style={styles.center}><Text>No se encontraron datos del producto.</Text></View>;
   }
 
-  if (!formData) {
-    return <View style={styles.center}><Text>No se encontraron datos del producto.</Text></View>;
-  }
-
-  // Determinar la URI de la imagen a mostrar.
-  // Si image_1920 ya es un string base64 (nueva foto), no necesita el prefijo.
-  // Si es el base64 del backend, SÍ necesita el prefijo.
-  // Esta lógica asume que si es una nueva foto, ya tiene el prefijo 'data:image...'
-  // Si no, y la nueva foto es solo base64, necesitarías añadir el prefijo.
   let imageUriToShow = formData.image_1920;
   if (formData.image_1920 && !formData.image_1920.startsWith('data:image')) {
     imageUriToShow = `data:image/png;base64,${formData.image_1920}`;
   }
-
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
@@ -206,8 +250,8 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ route, navigation }
           <Image source={{ uri: imageUriToShow }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imagePlaceholder]}>
-            <Icon name="camera-off" size={50} color="#A0A0A0" />
-            <Text style={styles.imagePlaceholderText}>Sin imagen</Text>
+            <Icon name="camera-plus-outline" size={50} color="#A0A0A0" />
+            <Text style={styles.imagePlaceholderText}>Añadir imagen</Text>
           </View>
         )}
         <TouchableOpacity style={styles.cameraButton} onPress={handleOpenCamera}>
@@ -237,13 +281,13 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ route, navigation }
       </View>
 
       <TouchableOpacity 
-        style={[styles.saveButton, saving && styles.buttonDisabled]} 
+        style={[styles.saveButton, isLoading && styles.buttonDisabled]} 
         onPress={handleSaveChanges}
-        disabled={saving}
+        disabled={isLoading}
       >
-        {saving 
+        {isLoading 
           ? <ActivityIndicator color="#FFFFFF" />
-          : <Text style={styles.saveButtonText}>Guardar Cambios</Text>
+          : <Text style={styles.saveButtonText}>{isEditMode ? 'Guardar Cambios' : 'Crear Producto'}</Text>
         }
       </TouchableOpacity>
     </ScrollView>
@@ -269,7 +313,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 300,
     resizeMode: 'cover',
-    backgroundColor: '#E0E0E0', // Color de fondo para la imagen
+    backgroundColor: '#E0E0E0', 
   },
   imagePlaceholder: {
     justifyContent: 'center',
@@ -283,42 +327,42 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 15,
     right: 15,
-    backgroundColor: 'rgba(0,0,0,0.6)', // Un poco más oscuro para mejor contraste
+    backgroundColor: 'rgba(0,0,0,0.6)', 
     padding: 12,
-    borderRadius: 30, // Círculo perfecto
-    elevation: 5, // Sombra
+    borderRadius: 30, 
+    elevation: 5, 
   },
   formContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 10, // Menos padding vertical si el scroll es el principal
+    paddingVertical: 10, 
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#424242', // Un gris más oscuro
+    color: '#424242', 
     marginBottom: 6,
     marginTop: 12,
   },
   input: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#BDBDBD', // Borde más sutil
+    borderColor: '#BDBDBD', 
     borderRadius: 8,
     paddingHorizontal: 15,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 10, // Ajuste de padding para iOS
+    paddingVertical: Platform.OS === 'ios' ? 14 : 10, 
     fontSize: 16,
     color: '#333',
   },
   inputError: {
-    borderColor: '#E53935', // Rojo más intenso para errores
-    borderWidth: 1.5, // Borde más grueso para destacar el error
+    borderColor: '#E53935', 
+    borderWidth: 1.5, 
   },
-  errorText: { // Para errores generales de carga
+  errorText: { 
     color: '#D32F2F',
     fontSize: 16,
     textAlign: 'center',
   },
-  errorTextValidation: { // Para errores de validación de campos
+  errorTextValidation: { 
     color: '#D32F2F',
     fontSize: 13,
     marginTop: 5,
@@ -327,20 +371,20 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: '#0A2342', 
     marginHorizontal: 20,
-    marginTop: 10, // Menos margen superior si hay más campos
-    marginBottom: 30, // Más margen inferior para que no quede pegado al final
+    marginTop: 10, 
+    marginBottom: 30, 
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     elevation: 2,
   },
   buttonDisabled: {
-    backgroundColor: '#90A4AE', // Un gris más claro para deshabilitado
+    backgroundColor: '#90A4AE', 
   },
   saveButtonText: {
     color: '#FFFFFF',
-    fontSize: 17, // Ligeramente más pequeño
-    fontWeight: '600', // Un poco menos bold
+    fontSize: 17, 
+    fontWeight: '600', 
   },
 });
 

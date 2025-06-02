@@ -106,6 +106,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         }
     };
 
+    // Navegacion a pagina de crear producto nuevo
+    const handleAddNewProduct = () => {
+    navigation.navigate('ProductDetail',{}); // No se pasa productId para entrar a modo creacion
+    };
+
     const renderHeader = () => (
         <View style={styles.headerContainer}>
             <Text style={styles.screenTitle}>Productos</Text>
@@ -197,7 +202,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             {/* Barra de navegación inferior */}
             <View style={styles.bottomNav}>
                 <TouchableOpacity style={styles.navButton}><Icon name="home-outline" size={28} color="#FFFFFF" style={styles.activeNavIcon} /></TouchableOpacity>
-                <TouchableOpacity style={styles.navButton}><Icon name="plus-circle-outline" size={28} color="#A9BCDB" /></TouchableOpacity>
+                <TouchableOpacity style={styles.navButton}><Icon name="plus-circle-outline" size={28} color="#A9BCDB" onPress={handleAddNewProduct} /></TouchableOpacity>
             </View>
         </View>
     );
