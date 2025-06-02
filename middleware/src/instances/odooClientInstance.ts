@@ -1104,4 +1104,281 @@ export const getRelatedProducts = async (productId: string, limit: number = 4) =
         return [];
     }
 };
+
+
+// Actualizar producto
+export const updateProduct = async (productId: number, updateData: any) => {
+    try {
+        console.log(`✏️ [updateProduct] Actualizando producto ${productId} con datos:`, updateData);
+        
+        // Verificar que el producto existe
+        const existingProduct = await odooClient.searchRead(
+            'product.product',
+            [['id', '=', productId]],
+            ['id', 'name', 'product_tmpl_id']
+        );
+        
+        if (existingProduct.length === 0) {
+            console.error(`❌ [updateProduct] Producto ${productId} no encontrado`);
+            return {
+                success: false,
+                message: 'Producto no encontrado',
+                product_id: null,
+                product: null
+            };
+        }
+        
+        const product = existingProduct[0];
+        const templateId = product.product_tmpl_id[0];
+        
+        // Preparar datos para actualizar
+        const productUpdateData: any = {};
+        const templateUpdateData: any = {};
+        
+        // Campos que van en product.product
+        if (updateData.name !== undefined) {
+            productUpdateData.name = updateData.name;
+            templateUpdateData.name = updateData.name; // También actualizar en template
+        }
+        
+        // Campos que van en product.template
+        if (updateData.list_price !== undefined) {
+            templateUpdateData.list_price = updateData.list_price;
+        }
+        if (updateData.image_1920 !== undefined) {
+            templateUpdateData.image_1920 = updateData.image_1920;
+        }
+        if (updateData.x_featured !== undefined) {
+            templateUpdateData.x_featured = updateData.x_featured;
+        }
+        
+        // Actualizar product.template
+        if (Object.keys(templateUpdateData).length > 0) {
+            console.log(`🔄 [updateProduct] Actualizando template ${templateId}:`, templateUpdateData);
+            await odooClient.write('product.template', [templateId], templateUpdateData);
+        }
+        
+        // Actualizar product.product si hay datos
+        if (Object.keys(productUpdateData).length > 0) {
+            console.log(`🔄 [updateProduct] Actualizando producto ${productId}:`, productUpdateData);
+            await odooClient.write('product.product', [productId], productUpdateData);
+        }
+        
+        // Invalidar cache
+        productCache.delete(productId);
+        
+        // Obtener el producto actualizado
+        const updatedProduct = await getProductById(productId.toString());
+        
+        console.log(`✅ [updateProduct] Producto ${productId} actualizado exitosamente`);
+        
+        return {
+            success: true,
+            message: 'Producto actualizado correctamente',
+            product_id: productId,
+            product: updatedProduct ? updatedProduct[0] : null
+        };
+        
+    } catch (error) {
+        console.error('❌ [updateProduct] Error actualizando producto:', error);
+        return {
+            success: false,
+            message: `Error al actualizar producto: ${error.message}`,
+            product_id: null,
+            product: null
+        };
+    }
+};
+
+// Crear producto nuevo
+export const createProduct = async (productData: any) => {
+    try {
+        console.log(`➕ [createProduct] Creando nuevo producto con datos:`, productData);
+        
+        // Validaciones básicas
+        if (!productData.name || productData.list_price === undefined) {
+            return {
+                success: false,
+                message: 'Nombre y precio son requeridos',
+                product_id: null,
+                product: null
+            };
+        }
+        
+        // Preparar datos para product.template (el producto base)
+        const templateData: any = {
+            name: productData.name,
+            list_price: productData.list_price,
+            type: productData.type || 'consu', // Producto consumible por defecto
+            sale_ok: productData.sale_ok !== undefined ? productData.sale_ok : true,
+        };
+        
+        // Campos opcionales
+        if (productData.image_1920) {
+            templateData.image_1920 = productData.image_1920;
+        }
+        if (productData.x_featured !== undefined) {
+            templateData.x_featured = productData.x_featured;
+        }
+        if (productData.categ_id) {
+            templateData.categ_id = productData.categ_id;
+        }
+        
+        console.log(`🛠️ [createProduct] Creando product.template:`, templateData);
+        
+        // Crear el product.template
+        const templateId = await odooClient.create('product.template', templateData);
+        console.log(`✅ [createProduct] Template creado con ID: ${templateId}`);
+        
+        // Odoo automáticamente crea una variante (product.product) cuando se crea un template
+        // Buscar la variante creada
+        const variants = await odooClient.searchRead(
+            'product.product',
+            [['product_tmpl_id', '=', templateId]],
+            ['id']
+        );
+        
+        if (variants.length === 0) {
+            console.error(`❌ [createProduct] No se encontró variante para template ${templateId}`);
+            return {
+                success: false,
+                message: 'Error: No se creó la variante del producto',
+                product_id: null,
+                product: null
+            };
+        }
+        
+        const productId = variants[0].id;
+        console.log(`✅ [createProduct] Variante creada con ID: ${productId}`);
+        
+        // Obtener el producto completo creado
+        const createdProduct = await getProductById(productId.toString());
+        
+        console.log(`🎉 [createProduct] Producto creado exitosamente con ID: ${productId}`);
+        
+        return {
+            success: true,
+            message: 'Producto creado correctamente',
+            product_id: productId,
+            product: createdProduct ? createdProduct[0] : null
+        };
+        
+    } catch (error) {
+        console.error('❌ [createProduct] Error creando producto:', error);
+        
+        let errorMessage = 'Error al crear producto';
+        if (error.message) {
+            if (error.message.includes('duplicate') || error.message.includes('unique')) {
+                errorMessage = 'Ya existe un producto con ese nombre';
+            } else if (error.message.includes('permission') || error.message.includes('access')) {
+                errorMessage = 'Sin permisos para crear productos';
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+        }
+        
+        return {
+            success: false,
+            message: errorMessage,
+            product_id: null,
+            product: null
+        };
+    }
+};
+
+export const deleteProduct = async (id: number) => {
+    try {
+        console.log(`🗑️ [deleteProduct] Eliminando producto ${id}`);
+        
+        // Verificar que el producto existe
+        const existingProduct = await odooClient.searchRead(
+            'product.product',
+            [['id', '=', id]],
+            ['id', 'name', 'product_tmpl_id']
+        );
+        
+        if (existingProduct.length === 0) {
+            console.error(`❌ [deleteProduct] Producto ${id} no encontrado`);
+            return {
+                success: false,
+                message: 'Producto no encontrado',
+                product_id: null
+            };
+        }
+        
+        const product = existingProduct[0];
+        const templateId = product.product_tmpl_id[0];
+        
+        console.log(`🔍 [deleteProduct] Producto encontrado: ${product.name}, Template ID: ${templateId}`);
+        
+        // Verificar si el producto está en algún carrito o ha sido vendido
+        const inCartLines = await odooClient.searchRead(
+            'sale.order.line',
+            [['product_id', '=', id]],
+            ['id', 'order_id']
+        );
+        
+        if (inCartLines.length > 0) {
+            console.warn(`⚠️ [deleteProduct] Producto ${id} tiene ${inCartLines.length} líneas de venta asociadas`);
+            return {
+                success: false,
+                message: 'No se puede eliminar: el producto tiene órdenes de venta asociadas',
+                product_id: id
+            };
+        }
+        
+        // Verificar si hay otras variantes del mismo template
+        const otherVariants = await odooClient.searchRead(
+            'product.product',
+            [['product_tmpl_id', '=', templateId], ['id', '!=', id]],
+            ['id']
+        );
+        
+        console.log(`🔍 [deleteProduct] Otras variantes del template: ${otherVariants.length}`);
+        
+        // Eliminar el producto (variante)
+        console.log(`🗑️ [deleteProduct] Eliminando product.product ${id}`);
+        await odooClient.delete('product.product', id);
+        
+        // Solo eliminar el template si no hay otras variantes
+        if (otherVariants.length === 0) {
+            console.log(`🗑️ [deleteProduct] Eliminando product.template ${templateId} (no hay otras variantes)`);
+            await odooClient.delete('product.template', templateId);
+        } else {
+            console.log(`ℹ️ [deleteProduct] Manteniendo product.template ${templateId} (tiene otras variantes)`);
+        }
+        
+        // Invalidar cache
+        productCache.delete(id);
+        
+        console.log(`✅ [deleteProduct] Producto ${id} eliminado exitosamente`);
+        
+        return {
+            success: true,
+            message: 'Producto eliminado correctamente',
+            product_id: id
+        };
+        
+    } catch (error) {
+        console.error('❌ [deleteProduct] Error eliminando producto:', error);
+        
+        let errorMessage = 'Error al eliminar producto';
+        if (error.message) {
+            if (error.message.includes('foreign key') || error.message.includes('constraint')) {
+                errorMessage = 'No se puede eliminar: el producto tiene datos relacionados';
+            } else if (error.message.includes('permission') || error.message.includes('access')) {
+                errorMessage = 'Sin permisos para eliminar productos';
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+        }
+        
+        return {
+            success: false,
+            message: errorMessage,
+            product_id: id
+        };
+    }
+};
+
 export { odooClient };
