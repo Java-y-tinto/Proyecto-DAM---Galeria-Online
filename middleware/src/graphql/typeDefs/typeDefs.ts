@@ -70,6 +70,12 @@ type ProductOperationResult {
   product: Product
 }
 
+type ProductDeleteResult {
+  success: Boolean!
+  message: String!
+  product_id: Int
+}
+
 
 type CartOrder {
   id: Int!
