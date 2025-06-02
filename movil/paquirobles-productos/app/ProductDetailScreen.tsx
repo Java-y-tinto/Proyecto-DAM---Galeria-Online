@@ -216,9 +216,6 @@ const ProductDetailScreen: React.FC<ProductDetailProps> = ({ route, navigation }
             name: formData.name,
             list_price: parseFloat(formData.list_price),
             image_1920: formData.image_1920,
-            // Añade aquí otros campos que tu ProductCreateInput requiera
-            // category: 'Default', // Ejemplo si categoría es obligatoria
-            // x_featured: false,  // Ejemplo
           }
         }
       });
