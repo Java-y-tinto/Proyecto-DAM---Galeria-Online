@@ -115,5 +115,6 @@ type Mutation {
   checkoutCart: CartOperationResult!
   updateProduct(id: Int!, input: ProductUpdateInput!): ProductOperationResult!
   createProduct(input: ProductCreateInput!): ProductOperationResult!
+  deleteProduct(id: Int!): ProductDeleteResult!
 }
 `;
