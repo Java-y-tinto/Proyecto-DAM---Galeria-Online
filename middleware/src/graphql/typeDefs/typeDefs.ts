@@ -31,6 +31,23 @@ type Product {
   variant_attributes: [VariantAttributeValue]
 }
 
+input ProductUpdateInput {
+  name: String
+  list_price: Float
+  image_1920: String
+  x_featured: Boolean
+}
+
+input ProductCreateInput {
+  name: String!
+  list_price: Float!
+  image_1920: String
+  x_featured: Boolean
+  categ_id: Int
+  type: String
+  sale_ok: Boolean
+}
+
 type AuthPayload {
   token: String
   success: Boolean!
