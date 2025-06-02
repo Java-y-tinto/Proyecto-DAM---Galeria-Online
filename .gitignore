@@ -4,3 +4,4 @@ node_modules
 .env
 **/dist/
 **/__tests__
+movil/paquirobles-gestion/expo-env.d.ts
