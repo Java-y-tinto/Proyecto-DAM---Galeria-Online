@@ -1252,7 +1252,8 @@ export const updateProduct = async (productId: number, input: ProductUpdateInput
         if (input.description_sale) updateData.description_sale = input.description_sale;
         
         if (Object.keys(updateData).length > 0) {
-            await odooClient.create('product.template', [templateId], updateData);
+            // ✅ CORRECCIÓN: Usar update() de la librería @fernandoslim/odoo-jsonrpc
+            await odooClient.update('product.template', templateId, updateData);
             console.log(`✅ [updateProduct] Campos básicos actualizados`);
         }
         
@@ -1269,7 +1270,10 @@ export const updateProduct = async (productId: number, input: ProductUpdateInput
             
             if (existingLines.length > 0) {
                 const lineIds = existingLines.map(line => line.id);
-                await odooClient.delete('product.template.attribute.line', lineIds);
+                // ✅ CORRECCIÓN: Usar delete() de la librería para eliminar
+                for (const lineId of lineIds) {
+                    await odooClient.delete('product.template.attribute.line', lineId);
+                }
                 console.log(`🗑️ [updateProduct] ${lineIds.length} líneas de atributos eliminadas`);
             }
             
@@ -1287,12 +1291,13 @@ export const updateProduct = async (productId: number, input: ProductUpdateInput
                         
                         if (newValue.html_color) valueData.html_color = newValue.html_color;
                         
+                        // ✅ AQUÍ SÍ es correcto usar create() porque estamos creando nuevos valores
                         const valueId = await odooClient.create('product.attribute.value', valueData);
                         allValueIds.push(valueId);
                     }
                 }
                 
-                // Crear nueva línea de atributo
+                // ✅ AQUÍ SÍ es correcto usar create() porque estamos creando nuevas líneas
                 await odooClient.create('product.template.attribute.line', {
                     product_tmpl_id: templateId,
                     attribute_id: attrLine.attribute_id,
