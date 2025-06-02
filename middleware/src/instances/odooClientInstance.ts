@@ -1155,13 +1155,13 @@ export const updateProduct = async (productId: number, updateData: any) => {
         // Actualizar product.template
         if (Object.keys(templateUpdateData).length > 0) {
             console.log(`🔄 [updateProduct] Actualizando template ${templateId}:`, templateUpdateData);
-            await odooClient.write('product.template', [templateId], templateUpdateData);
+            await odooClient.create('product.template', [templateId], templateUpdateData);
         }
         
         // Actualizar product.product si hay datos
         if (Object.keys(productUpdateData).length > 0) {
             console.log(`🔄 [updateProduct] Actualizando producto ${productId}:`, productUpdateData);
-            await odooClient.write('product.product', [productId], productUpdateData);
+            await odooClient.create('product.product', [productId], productUpdateData);
         }
         
         // Invalidar cache
