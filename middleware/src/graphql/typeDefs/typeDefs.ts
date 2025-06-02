@@ -69,6 +69,7 @@ input ProductCreateInput {
   categ_id: Int
   x_featured: Boolean
   description_sale: String
+  image_1920: String
   attribute_lines: [ProductAttributeLineInput!]  # Atributos a asignar
 }
 
@@ -78,6 +79,7 @@ input ProductUpdateInput {
   categ_id: Int
   x_featured: Boolean
   description_sale: String
+  image_1920: String
   attribute_lines: [ProductAttributeLineInput!]  # Actualizar atributos
 }
 

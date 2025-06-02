@@ -1123,29 +1123,6 @@ export interface ProductCreateInput {
     }>;
 }
 
-export interface ProductUpdateInput {
-    name?: string;
-    list_price?: number;
-    categ_id?: number;
-    x_featured?: boolean;
-    description_sale?: string;
-    attribute_lines?: Array<{
-        attribute_id: number;
-        value_ids: number[];
-        new_values?: Array<{
-            name: string;
-            html_color?: string;
-        }>;
-    }>;
-}
-
-export interface ProductOperationResult {
-    success: boolean;
-    message: string;
-    product_id?: number;
-    template_id?: number;
-    product?: any;
-}
 
 //  Crear producto con atributos
 export const createProduct = async (input: ProductCreateInput): Promise<ProductOperationResult> => {
@@ -1292,7 +1269,7 @@ export const updateProduct = async (productId: number, input: ProductUpdateInput
             
             if (existingLines.length > 0) {
                 const lineIds = existingLines.map(line => line.id);
-                await odooClient.unlink('product.template.attribute.line', lineIds);
+                await odooClient.delete('product.template.attribute.line', lineIds);
                 console.log(`🗑️ [updateProduct] ${lineIds.length} líneas de atributos eliminadas`);
             }
             
@@ -1453,5 +1430,47 @@ export const deleteProduct = async (id: number) => {
         };
     }
 };
+
+export interface ProductCreateInput {
+    name: string;
+    list_price: number;
+    categ_id?: number;
+    x_featured?: boolean;
+    description_sale?: string;
+    image_1920?: string;  // Base64 string
+    attribute_lines?: Array<{
+        attribute_id: number;
+        value_ids: number[];
+        new_values?: Array<{
+            name: string;
+            html_color?: string;
+        }>;
+    }>;
+}
+
+export interface ProductUpdateInput {
+    name?: string;
+    list_price?: number;
+    categ_id?: number;
+    x_featured?: boolean;
+    description_sale?: string;
+    image_1920?: string;  // Base64 string
+    attribute_lines?: Array<{
+        attribute_id: number;
+        value_ids: number[];
+        new_values?: Array<{
+            name: string;
+            html_color?: string;
+        }>;
+    }>;
+}
+
+export interface ProductOperationResult {
+    success: boolean;
+    message: string;
+    product_id?: number;
+    template_id?: number;
+    product?: any;
+}
 
 export { odooClient };
