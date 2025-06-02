@@ -1107,11 +1107,149 @@ export const getRelatedProducts = async (productId: string, limit: number = 4) =
 
 
 // Actualizar producto
-export const updateProduct = async (productId: number, updateData: any) => {
+export interface ProductCreateInput {
+    name: string;
+    list_price: number;
+    categ_id?: number;
+    x_featured?: boolean;
+    description_sale?: string;
+    attribute_lines?: Array<{
+        attribute_id: number;
+        value_ids: number[];
+        new_values?: Array<{
+            name: string;
+            html_color?: string;
+        }>;
+    }>;
+}
+
+export interface ProductUpdateInput {
+    name?: string;
+    list_price?: number;
+    categ_id?: number;
+    x_featured?: boolean;
+    description_sale?: string;
+    attribute_lines?: Array<{
+        attribute_id: number;
+        value_ids: number[];
+        new_values?: Array<{
+            name: string;
+            html_color?: string;
+        }>;
+    }>;
+}
+
+export interface ProductOperationResult {
+    success: boolean;
+    message: string;
+    product_id?: number;
+    template_id?: number;
+    product?: any;
+}
+
+//  Crear producto con atributos
+export const createProduct = async (input: ProductCreateInput): Promise<ProductOperationResult> => {
     try {
-        console.log(`✏️ [updateProduct] Actualizando producto ${productId} con datos:`, updateData);
+        console.log(`➕ [createProduct] Creando producto: ${input.name}`);
         
-        // Verificar que el producto existe
+        // 1. Crear el product.template
+        const templateData: any = {
+            name: input.name,
+            list_price: input.list_price,
+            type: 'consu',
+            sale_ok: true,
+        };
+        
+        if (input.categ_id) templateData.categ_id = input.categ_id;
+        if (input.x_featured !== undefined) templateData.x_featured = input.x_featured;
+        if (input.description_sale) templateData.description_sale = input.description_sale;
+        
+        const templateId = await odooClient.create('product.template', templateData);
+        console.log(`✅ [createProduct] Template creado con ID: ${templateId}`);
+        
+        // 2. Procesar atributos si existen
+        if (input.attribute_lines && input.attribute_lines.length > 0) {
+            console.log(`🎨 [createProduct] Procesando ${input.attribute_lines.length} líneas de atributos`);
+            
+            for (const attrLine of input.attribute_lines) {
+                let allValueIds = [...attrLine.value_ids];
+                
+                // Crear nuevos valores si se especificaron
+                if (attrLine.new_values && attrLine.new_values.length > 0) {
+                    console.log(`➕ [createProduct] Creando ${attrLine.new_values.length} nuevos valores`);
+                    
+                    for (const newValue of attrLine.new_values) {
+                        const valueData: any = {
+                            name: newValue.name,
+                            attribute_id: attrLine.attribute_id
+                        };
+                        
+                        if (newValue.html_color) valueData.html_color = newValue.html_color;
+                        
+                        const valueId = await odooClient.create('product.attribute.value', valueData);
+                        allValueIds.push(valueId);
+                        console.log(`✅ [createProduct] Valor creado: ${newValue.name} (ID: ${valueId})`);
+                    }
+                }
+                
+                // Crear línea de atributo del template
+                await odooClient.create('product.template.attribute.line', {
+                    product_tmpl_id: templateId,
+                    attribute_id: attrLine.attribute_id,
+                    value_ids: [[6, false, allValueIds]] // Sintaxis Odoo para many2many
+                });
+                
+                console.log(`✅ [createProduct] Línea de atributo creada para atributo ${attrLine.attribute_id}`);
+            }
+        }
+        
+        // 3. Obtener las variantes generadas automáticamente
+        const variants = await odooClient.searchRead(
+            'product.product',
+            [['product_tmpl_id', '=', templateId]],
+            ['id', 'name']
+        );
+        
+        console.log(`✅ [createProduct] ${variants.length} variantes generadas`);
+        
+        // 4. Obtener el producto completo para retornar
+        const productData = variants.length > 0 ? await getProductById(variants[0].id.toString()) : null;
+        
+        return {
+            success: true,
+            message: `Producto "${input.name}" creado exitosamente con ${variants.length} variante(s)`,
+            product_id: variants[0]?.id,
+            template_id: templateId,
+            product: productData ? productData[0] : null
+        };
+        
+    } catch (error) {
+        console.error('❌ [createProduct] Error:', error);
+        
+        let errorMessage = 'Error al crear producto';
+        if (error.message) {
+            if (error.message.includes('permission') || error.message.includes('access')) {
+                errorMessage = 'Sin permisos para crear productos';
+            } else if (error.message.includes('duplicate') || error.message.includes('unique')) {
+                errorMessage = 'Ya existe un producto con ese nombre';
+            } else {
+                errorMessage = `Error: ${error.message}`;
+            }
+        }
+        
+        return {
+            success: false,
+            message: errorMessage
+        };
+    }
+};
+
+//  Actualizar producto
+export const updateProduct = async (productId: number, input: ProductUpdateInput): Promise<ProductOperationResult> => {
+    try {
+        console.log(`📝 [updateProduct] Actualizando producto ${productId}`);
+        
+        // 1. Verificar que el producto existe
         const existingProduct = await odooClient.searchRead(
             'product.product',
             [['id', '=', productId]],
@@ -1119,159 +1257,95 @@ export const updateProduct = async (productId: number, updateData: any) => {
         );
         
         if (existingProduct.length === 0) {
-            console.error(`❌ [updateProduct] Producto ${productId} no encontrado`);
             return {
                 success: false,
-                message: 'Producto no encontrado',
-                product_id: null,
-                product: null
+                message: 'Producto no encontrado'
             };
         }
         
-        const product = existingProduct[0];
-        const templateId = product.product_tmpl_id[0];
+        const templateId = existingProduct[0].product_tmpl_id[0];
+        console.log(`🔍 [updateProduct] Template ID: ${templateId}`);
         
-        // Preparar datos para actualizar
-        const productUpdateData: any = {};
-        const templateUpdateData: any = {};
+        // 2. Actualizar campos básicos del template
+        const updateData: any = {};
+        if (input.name) updateData.name = input.name;
+        if (input.list_price !== undefined) updateData.list_price = input.list_price;
+        if (input.categ_id) updateData.categ_id = input.categ_id;
+        if (input.x_featured !== undefined) updateData.x_featured = input.x_featured;
+        if (input.description_sale) updateData.description_sale = input.description_sale;
         
-        // Campos que van en product.product
-        if (updateData.name !== undefined) {
-            productUpdateData.name = updateData.name;
-            templateUpdateData.name = updateData.name; // También actualizar en template
+        if (Object.keys(updateData).length > 0) {
+            await odooClient.create('product.template', [templateId], updateData);
+            console.log(`✅ [updateProduct] Campos básicos actualizados`);
         }
         
-        // Campos que van en product.template
-        if (updateData.list_price !== undefined) {
-            templateUpdateData.list_price = updateData.list_price;
-        }
-        if (updateData.image_1920 !== undefined) {
-            templateUpdateData.image_1920 = updateData.image_1920;
-        }
-        if (updateData.x_featured !== undefined) {
-            templateUpdateData.x_featured = updateData.x_featured;
+        // 3. Actualizar atributos si se especificaron
+        if (input.attribute_lines && input.attribute_lines.length > 0) {
+            console.log(`🎨 [updateProduct] Actualizando ${input.attribute_lines.length} líneas de atributos`);
+            
+            // Eliminar líneas de atributos existentes
+            const existingLines = await odooClient.searchRead(
+                'product.template.attribute.line',
+                [['product_tmpl_id', '=', templateId]],
+                ['id']
+            );
+            
+            if (existingLines.length > 0) {
+                const lineIds = existingLines.map(line => line.id);
+                await odooClient.unlink('product.template.attribute.line', lineIds);
+                console.log(`🗑️ [updateProduct] ${lineIds.length} líneas de atributos eliminadas`);
+            }
+            
+            // Crear nuevas líneas de atributos
+            for (const attrLine of input.attribute_lines) {
+                let allValueIds = [...attrLine.value_ids];
+                
+                // Crear nuevos valores si se especificaron
+                if (attrLine.new_values && attrLine.new_values.length > 0) {
+                    for (const newValue of attrLine.new_values) {
+                        const valueData: any = {
+                            name: newValue.name,
+                            attribute_id: attrLine.attribute_id
+                        };
+                        
+                        if (newValue.html_color) valueData.html_color = newValue.html_color;
+                        
+                        const valueId = await odooClient.create('product.attribute.value', valueData);
+                        allValueIds.push(valueId);
+                    }
+                }
+                
+                // Crear nueva línea de atributo
+                await odooClient.create('product.template.attribute.line', {
+                    product_tmpl_id: templateId,
+                    attribute_id: attrLine.attribute_id,
+                    value_ids: [[6, false, allValueIds]]
+                });
+            }
+            
+            console.log(`✅ [updateProduct] Atributos actualizados`);
         }
         
-        // Actualizar product.template
-        if (Object.keys(templateUpdateData).length > 0) {
-            console.log(`🔄 [updateProduct] Actualizando template ${templateId}:`, templateUpdateData);
-            await odooClient.create('product.template', [templateId], templateUpdateData);
-        }
-        
-        // Actualizar product.product si hay datos
-        if (Object.keys(productUpdateData).length > 0) {
-            console.log(`🔄 [updateProduct] Actualizando producto ${productId}:`, productUpdateData);
-            await odooClient.create('product.product', [productId], productUpdateData);
-        }
-        
-        // Invalidar cache
+        // 4. Invalidar cache y obtener producto actualizado
         productCache.delete(productId);
         
-        // Obtener el producto actualizado
         const updatedProduct = await getProductById(productId.toString());
-        
-        console.log(`✅ [updateProduct] Producto ${productId} actualizado exitosamente`);
         
         return {
             success: true,
-            message: 'Producto actualizado correctamente',
+            message: 'Producto actualizado exitosamente',
             product_id: productId,
+            template_id: templateId,
             product: updatedProduct ? updatedProduct[0] : null
         };
         
     } catch (error) {
-        console.error('❌ [updateProduct] Error actualizando producto:', error);
-        return {
-            success: false,
-            message: `Error al actualizar producto: ${error.message}`,
-            product_id: null,
-            product: null
-        };
-    }
-};
-
-// Crear producto nuevo
-export const createProduct = async (productData: any) => {
-    try {
-        console.log(`➕ [createProduct] Creando nuevo producto con datos:`, productData);
+        console.error('❌ [updateProduct] Error:', error);
         
-        // Validaciones básicas
-        if (!productData.name || productData.list_price === undefined) {
-            return {
-                success: false,
-                message: 'Nombre y precio son requeridos',
-                product_id: null,
-                product: null
-            };
-        }
-        
-        // Preparar datos para product.template (el producto base)
-        const templateData: any = {
-            name: productData.name,
-            list_price: productData.list_price,
-            type: productData.type || 'consu', // Producto consumible por defecto
-            sale_ok: productData.sale_ok !== undefined ? productData.sale_ok : true,
-        };
-        
-        // Campos opcionales
-        if (productData.image_1920) {
-            templateData.image_1920 = productData.image_1920;
-        }
-        if (productData.x_featured !== undefined) {
-            templateData.x_featured = productData.x_featured;
-        }
-        if (productData.categ_id) {
-            templateData.categ_id = productData.categ_id;
-        }
-        
-        console.log(`🛠️ [createProduct] Creando product.template:`, templateData);
-        
-        // Crear el product.template
-        const templateId = await odooClient.create('product.template', templateData);
-        console.log(`✅ [createProduct] Template creado con ID: ${templateId}`);
-        
-        // Odoo automáticamente crea una variante (product.product) cuando se crea un template
-        // Buscar la variante creada
-        const variants = await odooClient.searchRead(
-            'product.product',
-            [['product_tmpl_id', '=', templateId]],
-            ['id']
-        );
-        
-        if (variants.length === 0) {
-            console.error(`❌ [createProduct] No se encontró variante para template ${templateId}`);
-            return {
-                success: false,
-                message: 'Error: No se creó la variante del producto',
-                product_id: null,
-                product: null
-            };
-        }
-        
-        const productId = variants[0].id;
-        console.log(`✅ [createProduct] Variante creada con ID: ${productId}`);
-        
-        // Obtener el producto completo creado
-        const createdProduct = await getProductById(productId.toString());
-        
-        console.log(`🎉 [createProduct] Producto creado exitosamente con ID: ${productId}`);
-        
-        return {
-            success: true,
-            message: 'Producto creado correctamente',
-            product_id: productId,
-            product: createdProduct ? createdProduct[0] : null
-        };
-        
-    } catch (error) {
-        console.error('❌ [createProduct] Error creando producto:', error);
-        
-        let errorMessage = 'Error al crear producto';
+        let errorMessage = 'Error al actualizar producto';
         if (error.message) {
-            if (error.message.includes('duplicate') || error.message.includes('unique')) {
-                errorMessage = 'Ya existe un producto con ese nombre';
-            } else if (error.message.includes('permission') || error.message.includes('access')) {
-                errorMessage = 'Sin permisos para crear productos';
+            if (error.message.includes('permission') || error.message.includes('access')) {
+                errorMessage = 'Sin permisos para actualizar productos';
             } else {
                 errorMessage = `Error: ${error.message}`;
             }
@@ -1280,8 +1354,7 @@ export const createProduct = async (productData: any) => {
         return {
             success: false,
             message: errorMessage,
-            product_id: null,
-            product: null
+            product_id: productId
         };
     }
 };

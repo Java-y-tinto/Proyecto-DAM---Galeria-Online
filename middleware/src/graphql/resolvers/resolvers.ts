@@ -198,35 +198,17 @@ export const resolvers = {
       return await clearCart(context.user.uid);
     },
 
-    updateProduct: async (_: any, { id, input }: { id: number; input: any }, context: any) => {
-      if (!context.user || context.user.uid != 7) {
-        return { success: false, message: "No autorizado" };
-      }
-
-      console.log(`🔧 [Resolver] updateProduct llamado por usuario ${context.user.uid} para producto ${id}`);
-
-      try {
-        const result = await updateProduct(id, input);
-        console.log(`📤 [Resolver] updateProduct resultado:`, result.success ? 'ÉXITO' : 'FALLO');
-        return result;
-      } catch (error) {
-        console.error('❌ [Resolver] Error en updateProduct:', error);
+    createProduct: async (_: any, { input }: { input: any }, context: any) => {
+      // Solo admin puede crear productos (usuario 7)
+      if (!context.user || context.user.uid !== 7) {
         return {
           success: false,
-          message: "Error interno del servidor",
-          product_id: null,
-          product: null
+          message: "No autorizado - Solo administradores pueden crear productos"
         };
-      }
-    },
-
-    createProduct: async (_: any, { input }: { input: any }, context: any) => {
-      if (!context.user || context.user.uid != 7) {
-        return { success: false, message: "No autorizado" };
       }
 
       console.log(`➕ [Resolver] createProduct llamado por usuario ${context.user.uid}`);
-      console.log(`📦 [Resolver] Datos del producto:`, input);
+      console.log(`📝 [Resolver] Datos de entrada:`, JSON.stringify(input, null, 2));
 
       try {
         const result = await createProduct(input);
@@ -238,11 +220,39 @@ export const resolvers = {
           success: false,
           message: "Error interno del servidor",
           product_id: null,
+          template_id: null,
           product: null
         };
       }
     },
 
+    updateProduct: async (_: any, { id, input }: { id: number; input: any }, context: any) => {
+      // Solo admin puede actualizar productos
+      if (!context.user || context.user.uid !== 7) {
+        return {
+          success: false,
+          message: "No autorizado - Solo administradores pueden actualizar productos"
+        };
+      }
+
+      console.log(`📝 [Resolver] updateProduct llamado por usuario ${context.user.uid} para producto ${id}`);
+      console.log(`📝 [Resolver] Datos de actualización:`, JSON.stringify(input, null, 2));
+
+      try {
+        const result = await updateProduct(id, input);
+        console.log(`📤 [Resolver] updateProduct resultado:`, result.success ? 'ÉXITO' : 'FALLO');
+        return result;
+      } catch (error) {
+        console.error('❌ [Resolver] Error en updateProduct:', error);
+        return {
+          success: false,
+          message: "Error interno del servidor",
+          product_id: id,
+          template_id: null,
+          product: null
+        };
+      }
+    },
     deleteProduct: async (_: any, { id }: { id: number }, context: any) => {
       if (!context.user || context.user.uid != 7) {
         return { success: false, message: "No autorizado" };

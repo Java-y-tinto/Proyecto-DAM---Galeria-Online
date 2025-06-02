@@ -31,23 +31,6 @@ type Product {
   variant_attributes: [VariantAttributeValue]
 }
 
-input ProductUpdateInput {
-  name: String
-  list_price: Float
-  image_1920: String
-  x_featured: Boolean
-}
-
-input ProductCreateInput {
-  name: String!
-  list_price: Float!
-  image_1920: String
-  x_featured: Boolean
-  categ_id: Int
-  type: String
-  sale_ok: Boolean
-}
-
 type AuthPayload {
   token: String
   success: Boolean!
@@ -63,19 +46,48 @@ type CartOperationResult {
   access_url: String
 }
 
-type ProductOperationResult {
-  success: Boolean!
-  message: String!
-  product_id: Int
-  product: Product
-}
-
 type ProductDeleteResult {
   success: Boolean!
   message: String!
   product_id: Int
 }
 
+input AttributeValueInput {
+  name: String!
+  html_color: String
+}
+
+input ProductAttributeLineInput {
+  attribute_id: Int!           # ID del atributo existente (Color, Talla, etc.)
+  value_ids: [Int!]!          # IDs de valores existentes
+  new_values: [AttributeValueInput!]  # Crear nuevos valores si es necesario
+}
+
+input ProductCreateInput {
+  name: String!
+  list_price: Float!
+  categ_id: Int
+  x_featured: Boolean
+  description_sale: String
+  attribute_lines: [ProductAttributeLineInput!]  # Atributos a asignar
+}
+
+input ProductUpdateInput {
+  name: String
+  list_price: Float
+  categ_id: Int
+  x_featured: Boolean
+  description_sale: String
+  attribute_lines: [ProductAttributeLineInput!]  # Actualizar atributos
+}
+
+type ProductOperationResult {
+  success: Boolean!
+  message: String!
+  product_id: Int
+  template_id: Int
+  product: Product
+}
 
 type CartOrder {
   id: Int!
@@ -119,8 +131,8 @@ type Mutation {
   removeFromCart(lineId: Int!): CartOperationResult!
   clearCart: CartOperationResult!
   checkoutCart: CartOperationResult!
-  updateProduct(id: Int!, input: ProductUpdateInput!): ProductOperationResult!
-  createProduct(input: ProductCreateInput!): ProductOperationResult!
   deleteProduct(id: Int!): ProductDeleteResult!
+  createProduct(input: ProductCreateInput!): ProductOperationResult!
+  updateProduct(id: Int!, input: ProductUpdateInput!): ProductOperationResult!
 }
 `;
