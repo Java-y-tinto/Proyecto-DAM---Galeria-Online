@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
   graphqlUrl: '/api/graphql',
-  odooUrl: '/my/',
+  odooUrl: 'admin.paquirobles.com',
   name: 'production'
 };
