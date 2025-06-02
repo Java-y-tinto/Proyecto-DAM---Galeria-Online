@@ -88,5 +88,7 @@ type Mutation {
   removeFromCart(lineId: Int!): CartOperationResult!
   clearCart: CartOperationResult!
   checkoutCart: CartOperationResult!
+  updateProduct(id: Int!, input: ProductUpdateInput!): ProductOperationResult!
+  createProduct(input: ProductCreateInput!): ProductOperationResult!
 }
 `;

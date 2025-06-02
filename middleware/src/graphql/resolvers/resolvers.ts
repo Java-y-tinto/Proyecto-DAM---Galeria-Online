@@ -12,7 +12,10 @@ import {
   searchProducts,
   getRelatedProducts,
   getFeaturedProducts,
-  getNewestProducts
+  getNewestProducts,
+  updateProduct,
+  createProduct,
+  deleteProduct
 
 } from '../../instances/odooClientInstance.js';
 import { authenticateUser, registerUser } from '../../services/auth.js';
@@ -30,60 +33,60 @@ export const resolvers = {
 
     productById: async (_: any, { id }: { id: string }, context: any) => {
       try {
-        
 
-        
+
+
         const products = await getProductById(id);
-        
+
 
         if (!products || products.length === 0) {
-          
+
           return null;
         }
 
         const product = products[0];
-        
+
         return product;
       } catch (error) {
-        
+
         return null;
       }
     },
     searchProducts: async (_: any, { searchTerm }: { searchTerm: string }, context: any) => {
       try {
-        
+
         if (!searchTerm || searchTerm.trim().length === 0) {
-          
+
           return [];
         }
 
         const products = await searchProducts(searchTerm.trim());
-        
+
         return products;
       } catch (error) {
-        
+
         return [];
       }
     },
     getRelatedProducts: async (_: any, { productId, limit = 4 }: { productId: string, limit?: number }, context: any) => {
       try {
-        
+
         const relatedProducts = await getRelatedProducts(productId, limit);
-        
+
         return relatedProducts;
       } catch (error) {
-        
+
         return [];
       }
     },
     getFeaturedProducts: async (_: any, __: any, context: any) => {
       try {
-        
+
         const featuredProducts = await getFeaturedProducts();
-        
+
         return featuredProducts;
       } catch (error) {
-        
+
         return [];
       }
     },
@@ -93,14 +96,14 @@ export const resolvers = {
       }
       return await getOdooPartnerId(context.user.uid);
     },
-     getNewestProducts: async (_: any, __: any, context: any) => {
+    getNewestProducts: async (_: any, __: any, context: any) => {
       try {
-        
+
         const newestProducts = await getNewestProducts();
-        
+
         return newestProducts;
       } catch (error) {
-        
+
         return [];
       }
     },
@@ -173,7 +176,7 @@ export const resolvers = {
           message: "OK"
         };
       } catch (error) {
-        
+
         return {
           success: false,
           message: `Error de registro: ${error.message || 'Error desconocido'}`,
@@ -195,6 +198,71 @@ export const resolvers = {
       return await clearCart(context.user.uid);
     },
 
+    updateProduct: async (_: any, { id, input }: { id: number; input: any }, context: any) => {
+      if (!context.user || context.user.uid != 7) {
+        return { success: false, message: "No autorizado" };
+      }
 
-  },
-};
+      console.log(`🔧 [Resolver] updateProduct llamado por usuario ${context.user.uid} para producto ${id}`);
+
+      try {
+        const result = await updateProduct(id, input);
+        console.log(`📤 [Resolver] updateProduct resultado:`, result.success ? 'ÉXITO' : 'FALLO');
+        return result;
+      } catch (error) {
+        console.error('❌ [Resolver] Error en updateProduct:', error);
+        return {
+          success: false,
+          message: "Error interno del servidor",
+          product_id: null,
+          product: null
+        };
+      }
+    },
+
+    createProduct: async (_: any, { input }: { input: any }, context: any) => {
+      if (!context.user || context.user.uid != 7) {
+        return { success: false, message: "No autorizado" };
+      }
+
+      console.log(`➕ [Resolver] createProduct llamado por usuario ${context.user.uid}`);
+      console.log(`📦 [Resolver] Datos del producto:`, input);
+
+      try {
+        const result = await createProduct(input);
+        console.log(`📤 [Resolver] createProduct resultado:`, result.success ? 'ÉXITO' : 'FALLO');
+        return result;
+      } catch (error) {
+        console.error('❌ [Resolver] Error en createProduct:', error);
+        return {
+          success: false,
+          message: "Error interno del servidor",
+          product_id: null,
+          product: null
+        };
+      }
+    },
+
+    deleteProduct: async (_: any, { id }: { id: number }, context: any) => {
+      if (!context.user || context.user.uid != 7) {
+        return { success: false, message: "No autorizado" };
+      }
+
+      console.log(`🗑️ [Resolver] deleteProduct llamado por usuario ${context.user.uid} para producto ${id}`)
+
+      try {
+        const result = await deleteProduct(id);
+        console.log(`📤 [Resolver] deleteProduct resultado:`, result.success ? 'ÉXITO' : 'FALLO');
+        return result;
+      } catch (error) {
+        console.error('❌ [Resolver] Error en deleteProduct:', error);
+        return {
+          success: false,
+          message: "Error interno del servidor",
+          product_id: null,
+          product: null
+        };
+      }
+    },
+  }
+}
