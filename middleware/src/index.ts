@@ -12,9 +12,9 @@ import { odooClient, connectOdoo } from './instances/odooClientInstance.js';
 
 dotenv.config();
 
-console.log('🚀 INICIANDO SERVIDOR MIDDLEWARE...');
-console.log('📁 JWT_SECRET definido:', process.env.JWT_SECRET ? 'SÍ' : 'NO');
-console.log('🔌 Puerto:', process.env.PORT || 4000);
+console.log('INICIANDO SERVIDOR MIDDLEWARE...');
+console.log('JWT_SECRET definido:', process.env.JWT_SECRET ? 'SÍ' : 'NO');
+console.log('Puerto:', process.env.PORT || 4000);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -53,9 +53,9 @@ const startServer = async () => {
 ]
   });
 
-  console.log('🎯 Iniciando Apollo Server...');
+  console.log('Iniciando Apollo Server...');
   await server.start();
-  console.log('✅ Apollo Server iniciado correctamente');
+  console.log('Apollo Server iniciado correctamente');
   app.use(limiter);
   app.use(
     '/graphql',
@@ -64,47 +64,40 @@ const startServer = async () => {
     
     expressMiddleware(server, {
       context: async ({ req }) => {
-        console.log('📨 Nueva request recibida en /graphql');
-        console.log('🔧 Headers recibidos:', JSON.stringify(req.headers, null, 2));
         
         const authHeader = req.headers.authorization || '';
-        console.log('🔍 Authorization header completo:', authHeader);
         
         if (authHeader.startsWith('Bearer ')) {
           const token = authHeader.replace('Bearer ', '');
-          console.log('🎫 Token extraído (completo):', token);
           
           try {
-            console.log('🔐 Intentando verificar token...');
             const user = verifyToken(token);
-            console.log('✅ Token verificado correctamente, usuario completo:', user);
             return { user };
           } catch (err) {
-            console.error('❌ Error verificando token:', err);
-            console.error('❌ Stack del error:', err.stack);
+            console.error('Error verificando token:', err);
+            console.error('Stack del error:', err.stack);
             return {};
           }
         }
         
-        console.log('🚫 No hay Bearer token en el header');
         return {};
       },
     })
   );
 
   app.get('/health', (req, res) => {
-    console.log('💊 Health check solicitado');
+    console.log('Health check solicitado');
     res.send('Servidor OK');
   });
 
   app.listen(port, () => {
-    console.log(`🚀 SERVIDOR MIDDLEWARE CORRIENDO EN http://localhost:${port}/graphql`);
-    console.log(`💊 Health check disponible en http://localhost:${port}/health`);
-    console.log('👂 Esperando requests...');
+    console.log(`SERVIDOR MIDDLEWARE CORRIENDO EN http://localhost:${port}/graphql`);
+    console.log(`Health check disponible en http://localhost:${port}/health`);
+    console.log('Esperando requests...');
   });
 };
 
 startServer().catch(error => {
-  console.error('💥 ERROR FATAL AL INICIAR SERVIDOR:', error);
+  console.error('ERROR FATAL AL INICIAR SERVIDOR:', error);
   process.exit(1);
 });
