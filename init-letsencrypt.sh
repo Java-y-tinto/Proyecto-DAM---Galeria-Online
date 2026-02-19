@@ -2,8 +2,8 @@
 
 # --- CONFIGURACIÓN ---
 # ¡¡¡CAMBIA ESTAS VARIABLES POR LAS TUYAS!!!
-DOMAINS=("paquirobles.com" "www.paquirobles.com")
-EMAIL="paqui.robles@paquirobles.com"
+DOMAINS=""
+EMAIL=""
 # --- FIN DE CONFIGURACIÓN ---
 
 
