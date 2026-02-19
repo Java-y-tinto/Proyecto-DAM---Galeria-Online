@@ -1,0 +1,104 @@
+services:
+
+  nginx:
+    container_name: reverse_proxy_app
+    image: ghcr.io/java-y-tinto/proyecto-dam---galeria-online/nginx-frontend:master
+    ports: 
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certbot_config/etc_letsencrypt:/etc/letsencrypt:ro
+      - ./certbot_config/var_www_certbot:/var/www/certbot:ro
+
+      - certbot-certs:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+    networks:
+      - proyect
+    depends_on:
+      - middleware
+
+  certbot:
+    container_name: certbot_manager
+    image: certbot/certbot
+    volumes:
+
+
+
+      - ./certbot_config/etc_letsencrypt:/etc/letsencrypt     
+      - ./certbot_config/var_www_certbot:/var/www/certbot 
+      - ./certbot_config/var_lib_letsencrypt:/var/lib/letsencrypt
+      - certbot-certs:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+      - certbot-var-lib:/var/lib/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: renew --quiet --webroot -w /var/www/certbot --deploy-hook "docker compose -f /home/deployer/online-gallery/docker-compose.yml exec nginx nginx -s reload"
+
+  middleware:
+    container_name: middleware_app
+    image: ghcr.io/java-y-tinto/proyecto-dam---galeria-online/middleware:master
+    env_file:
+      - ./middleware/.env
+    networks:
+      - proyect
+    depends_on:
+      - odoo
+  db:
+    image: postgres:15.0
+    environment:
+      - POSTGRES_USER=gallery
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
+      - POSTGRES_DB=postgres
+    volumes:
+      - proyect_db_data:/var/lib/postgresql/data
+    secrets:
+      - postgres_user
+      - postgres_password
+    networks:
+      - proyect
+
+  odoo:
+    image: odoo:18.0
+    container_name: odoo_backend
+    
+    environment:
+      - USER=gallery
+      - PASSWORD_FILE=/run/secrets/odoo_password
+      - LIST_DB=False
+      - ODOO_DB_NAME=paquirobles_produccion
+    volumes:
+      - proyect_odoo_data:/var/lib/odoo/
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+    depends_on:
+      - db
+    secrets:
+      - odoo_user
+      - odoo_password
+    networks:
+      - proyect
+
+volumes:
+  proyect_db_data:
+    driver: local
+  proyect_odoo_data:
+    driver: local
+  certbot-certs:
+    driver: local
+  certbot-webroot:
+    driver: local
+  certbot-var-lib:
+    driver: local
+
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_proyect_user
+  postgres_password:
+    file: ./secrets/postgres_proyect_pwd
+  odoo_user:
+    file: ./secrets/odoo_proyect_user
+  odoo_password:
+    file: ./secrets/odoo_proyect_pwd
+
+networks:
+  proyect:
+    external: true
+    name: proyect
