@@ -1,6 +1,6 @@
 # Online Art Gallery E-Commerce Platform
 
-This is my full-stack e-commerce project for an online art gallery — think secure browsing, buying prints/digital art, user accounts, and admin management all in one. Built as a DAM (Desarrollo de Aplicaciones Multiplataforma) final project, but with real-world quality in mind: decoupled frontend, GraphQL for clean data, Odoo handling the heavy ERP lifting, and Stripe for payments.
+This is my full-stack e-commerce project for an online art gallery — think secure browsing, buying prints/digital art, user accounts, and admin management all in one. Built as the final project for my associate's degree in multiplatform applications development, but with real-world quality in mind: decoupled frontend, GraphQL for clean data, Odoo handling the heavy ERP lifting, and Stripe for payments.
 
 The big idea was **never** let the Angular frontend talk directly to Odoo. Everything goes through a lightweight GraphQL middleware (BFF pattern). This keeps things secure, avoids exposing the ERP, prevents over/under-fetching, and makes the frontend dev experience way nicer with strong typing.
 
